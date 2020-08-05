@@ -1,0 +1,7 @@
+.env
+__pycache__/
+.idea/
+old/
+run.py
+Pipfile
+Pipfile.lock
