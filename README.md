@@ -62,7 +62,7 @@ Explanation\:
 ###### Maximal number of buttons in a single row\.
 
 ##### `Optional[List[str]]` allowed_items
-###### A list of allowed content types from user\. See the [Functions]() section\.
+###### A list of allowed content types from user\. See the [Functions](#functions) section\.
 
 ## Formatters
 Every single time when a text gets built a formatter is called \(in case such formatter is registered\)
