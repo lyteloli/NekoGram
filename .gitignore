@@ -5,3 +5,4 @@ old/
 run.py
 Pipfile
 Pipfile.lock
+.DS_Store
