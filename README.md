@@ -89,6 +89,7 @@ So here\'s an example of formatter to fill the menu above\:
 # from NekoGram import Neko, types
 # neko = Neko(...)
 
+# Note: If your formatter has a unique name you can ignore “name” parameter
 @neko.formatter(name='menu_favorite_pet')  # Pass the menu name to the “name” argument
 async def _(data: Neko.BuildResponse, user: types.User, _: Neko):
     user_data = await neko.storage.get_user_data(user_id=user.id)
@@ -103,11 +104,11 @@ it will be replaced\.
 If you know this menu is being called from a CallbackQuery and want to answer it with the text of a menu you can 
 add the following to your formatter\:
 ```python
-data.data['extras']['answer_call'] = True
+data.data.extras['answer_call'] = True
 ```
 If you want the call to only be answered and no messages sent\/edited add the following line as well\:
 ```python
-data.data['extras']['answer_only'] = True
+data.data.extras['answer_only'] = True
 ```
 
 ## Functions
@@ -131,13 +132,15 @@ Here's an example of function implementation\:
 # from NekoGram import Neko, types
 # neko = Neko(...)
 
-@neko.function(name='menu_something')
+# Note: If your function has a unique name you can ignore “name” parameter
+@neko.function(name='menu_something')  # Pass the menu name to the “name” argument
 async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
     # Return True if you want start menu to be shown to a user
     pass
 ```
 
 ## Extras
+#### Pulling Neko object from context
 If there\'s a case when you manually register a vanilla aiogram handler and want to build a certain text you can 
 always grab Neko class out of context. Here\'s an example\:
 ```python
@@ -152,4 +155,24 @@ async def _(message: types.Message):
     await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
                         disable_web_page_preview=data.data.no_preview, reply=False,
                         disable_notification=data.data.silent, reply_markup=data.data.markup)
+```
+#### Pagination
+You can easily paginate your menus using `add_pagination` method like this\:
+```python
+from NekoGram import Neko, types
+NEKO = Neko(...)
+
+@NEKO.function(name='some_name')
+async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
+    offset = data.extras['offset']  # ! Make sure offset is not None
+    data = await neko.build_text(text='text_name', user=message.from_user)
+    # Do the rest (fetch data, build a markup) here
+    found: int = 20  # Number of found values
+    await data.data.add_pagination(offset=offset, found=found, limit=25)
+```
+#### Force message deletion in callback handling
+Sometimes after formatting you may want a message to be resent\, simply set `delete_and_send` to True\:
+```python
+data = await neko.build_text(text='text_name', user=message.from_user)
+data.data.extras['delete_and_send'] = True
 ```

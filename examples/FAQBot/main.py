@@ -20,8 +20,7 @@ BOT: Bot = Bot(token=TOKEN)
 DP: Dispatcher = Dispatcher(bot=BOT)
 NEKO: Neko = Neko(dp=DP, storage=DATABASE)
 
-with open('translations/en.json') as f:
-    NEKO.add_texts(texts=f, lang='en')
+NEKO.add_texts()  # Pass no parameters so texts will be pulled from translations/ directory
 
 
 @NEKO.formatter(name='start')  # Start function formatter

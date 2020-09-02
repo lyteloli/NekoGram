@@ -1,4 +1,4 @@
-from typing import Optional, Union, Any, AsyncIterable, List, Dict, Tuple
+from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
 from ..base_storage import BaseStorage
 from aiomysql.cursors import DictCursor
 from pymysql import err as mysql_errors
@@ -78,7 +78,7 @@ class MySQLStorage(BaseStorage):
                     return cursor.rowcount
 
     async def select(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None) -> \
-            AsyncIterable[Dict[str, Any]]:
+            AsyncGenerator[Dict[str, Any], None]:
         """
         Generator that yields rows
         :param query: SQL query to execute
@@ -90,6 +90,7 @@ class MySQLStorage(BaseStorage):
             async with conn.cursor(DictCursor) as cursor:
                 try:
                     await cursor.execute(query, args)
+                    await conn.commit()
                     while True:
                         item = await cursor.fetchone()
                         if item:
@@ -113,11 +114,13 @@ class MySQLStorage(BaseStorage):
             async with conn.cursor(DictCursor) as cursor:
                 try:
                     await cursor.execute(query, args)
+                    await conn.commit()
 
                     if fetch_all:
                         return await cursor.fetchall()
                     else:
-                        return await cursor.fetchone()
+                        result = await cursor.fetchone()
+                        return result if result else dict()
                 except mysql_errors.Error:
                     return False
 
@@ -127,6 +130,7 @@ class MySQLStorage(BaseStorage):
             async with conn.cursor(DictCursor) as cursor:
                 try:
                     await cursor.execute(query, args)
+                    await conn.commit()
 
                     return cursor.rowcount
                 except mysql_errors.Error:
@@ -138,7 +142,7 @@ class MySQLStorage(BaseStorage):
         :param user_id: Telegram ID of the user
         :return: User's language
         """
-        return (await self.get("""SELECT lang FROM users WHERE id=%s""", user_id))['lang']
+        return (await self.get("""SELECT lang FROM users WHERE id=%s""", user_id)).get('lang', 'en')
 
     async def get_user_data(self, user_id: int) -> Union[Dict[str, Any], bool]:
         """
@@ -147,14 +151,14 @@ class MySQLStorage(BaseStorage):
         :return: Decoded JSON user data
         """
         try:
-            return json.loads((await self.get("""SELECT data FROM users WHERE id=%s""", user_id))['data'])
+            return json.loads((await self.get("""SELECT data FROM users WHERE id=%s""", user_id)).get('data', '{}'))
         except TypeError:
             return False
 
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
                             replace: bool = False) -> Dict[str, Any]:
         if data is None:
-            new_data = dict()
+            data = dict()
             replace = True
 
         if replace:
