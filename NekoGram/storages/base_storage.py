@@ -1,10 +1,8 @@
 from typing import Union, Optional, Dict, Any, AsyncGenerator, List
-import logging
 
 
 class BaseStorage:
     def __init__(self):
-        logging.warning('You are using BaseStorage which doesn\'t save data permanently and is only for tests!')
         self.users: Dict[str, Dict[str, Any]] = dict()
 
     async def get_user_language(self, user_id: int) -> str:
@@ -42,7 +40,7 @@ class BaseStorage:
         pass
 
     async def select(self, query, args=None) -> AsyncGenerator[Dict[str, Any], None]:
-        pass
+        yield
 
     async def get(self, query: str, args=None, fetch_all: bool = False) -> Union[bool, List[Dict[str, Any]],
                                                                                  Dict[str, Any]]:

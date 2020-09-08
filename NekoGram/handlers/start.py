@@ -1,10 +1,11 @@
-from NekoGram import Neko, types
+from aiogram import types
 from asyncio import sleep
 from typing import Union
+import NekoGram
 
 
 async def default_start_function(message: Union[types.Message, types.CallbackQuery]):
-    neko: Neko = message.conf['neko']
+    neko: NekoGram.Neko = message.conf['neko']
     if not await neko.storage.check_user_exists(user_id=message.from_user.id):
         lang = message.from_user.language_code if message.from_user.language_code in neko.texts.keys() else 'en'
         await neko.storage.create_user(user_id=message.from_user.id, language=lang)

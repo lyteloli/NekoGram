@@ -1,9 +1,10 @@
 from typing import Union, Dict, Any
-from NekoGram import Neko, types
+from aiogram import types
+import NekoGram
 
 
 async def menu_message_handler(message: types.Message):
-    neko: Neko = message.conf['neko']
+    neko: NekoGram.Neko = message.conf['neko']
     user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(user_id=message.from_user.id)
     current_menu_name: str = user_data.get('menu')
     current_menu = await neko.build_text(text=current_menu_name, user=message.from_user)

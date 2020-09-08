@@ -1,10 +1,10 @@
-from aiogram import exceptions as aiogram_exceptions
-from NekoGram import Neko, types
+from aiogram import exceptions as aiogram_exceptions, types
 from typing import Optional
+import NekoGram
 
 
 async def menu_callback_query_handler(call: types.CallbackQuery):
-    neko: Neko = call.conf['neko']
+    neko: NekoGram.Neko = call.conf['neko']
     call_data: Optional[int] = None
     new_call_data: str = call.data
 

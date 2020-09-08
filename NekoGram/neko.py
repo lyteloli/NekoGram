@@ -5,7 +5,7 @@ from typing import Dict, List, Any, Callable, Union, Optional, TextIO
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram import Dispatcher, Bot, executor, types
 from .filters import StartsWith, HasMenu
-from .storages import MySQLStorage
+from .storages import BaseStorage
 from os.path import isdir, isfile
 from io import TextIOWrapper
 from copy import deepcopy
@@ -20,7 +20,7 @@ except ImportError:
 
 
 class Neko:
-    def __init__(self, dp: Dispatcher, storage: MySQLStorage, only_messages_in_functions: bool = False,
+    def __init__(self, dp: Dispatcher, storage: BaseStorage, only_messages_in_functions: bool = False,
                  start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None):
         """
         Initialize a dispatcher
@@ -32,7 +32,9 @@ class Neko:
         """
         self.bot: Bot = dp.bot
         self.dp: Dispatcher = dp
-        self.storage: MySQLStorage = storage
+        self.storage: BaseStorage = storage
+        if type(storage) == BaseStorage:
+            logging.warning('You are using BaseStorage which doesn\'t save data permanently and is only for tests!')
         self.texts: Dict[str, Any] = dict()
         self.functions: Dict[str, Callable[[Neko.BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
                                            Any]] = dict()
