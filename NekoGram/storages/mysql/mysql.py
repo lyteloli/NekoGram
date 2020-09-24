@@ -14,7 +14,7 @@ except ImportError:
 
 class MySQLStorage(BaseStorage):
     def __init__(self, database: str, host: str = 'localhost', port: int = 3306, user: str = 'root',
-                 password: Optional[str] = None):
+                 password: Optional[str] = None, create_pool: bool = True):
         """
         Initialize database
         :param database: Database name
@@ -22,6 +22,7 @@ class MySQLStorage(BaseStorage):
         :param port: Database port
         :param user: Database user
         :param password: Database password
+        :param create_pool: Set True if you want to obtain a pool immediately
         """
         self.pool: Optional[aiomysql.Pool] = None
         self.host: str = host
@@ -30,8 +31,9 @@ class MySQLStorage(BaseStorage):
         self.password: str = password
         self.database = database
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.acquire_pool())
+        if create_pool:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.acquire_pool())
         super().__init__()
 
     def __del__(self):

@@ -1,5 +1,6 @@
 # NekoGram
 ###### Creating bots has never been simpler\.
+##### Join our [Telegram chat @NekoGramDev](https://t.me/NekoGramDev)
 
 ## Overview
 The idea of NekoGram is to let developers write code as little as possible but still be able implement complex 
@@ -7,6 +8,20 @@ solutions\.\
 NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means you can use all its features\.
 
 # Quick documentation
+
+## Installation
+Required:
+```
+pip install aiogram
+```
+Speedups:
+```
+pip install uvloop ujson cchardet aiodns
+```
+MySQL storage dependencies:
+```
+pip install aiomysql
+```
 
 ## Structure
 ![](docs/update-structure.png)
@@ -35,7 +50,7 @@ Here is the structure you have to use to build your texts\:
   }
 }
 ```
-Explanation\:
+#### Explanation\:
 ##### `str` text_name
 ###### The name of your text\.
 
@@ -63,6 +78,18 @@ Explanation\:
 
 ##### `Optional[List[str]]` allowed_items
 ###### A list of allowed content types from user\. See the [Functions](#functions) section\.
+#### Name your texts\:
+File names should be [IETF language codes](https://en.wikipedia.org/wiki/IETF_language_tag) like `en.json`\.\
+If you wish to split your files to smaller ones you can add an underscore with any text to their names like `en_1.json`\, 
+`en_menus.json`
+
+#### Load your texts into Neko\:
+```python
+# from NekoGram import Neko, types
+# neko = Neko(...)
+neko.add_texts()
+```
+> Remember to load your texts before you start your bot\. You can load them dynamically in runtime though\.
 
 ## Formatters
 Every single time when a text gets built a formatter is called \(in case such formatter is registered\)
@@ -132,12 +159,12 @@ Here's an example of function implementation\:
 # from NekoGram import Neko, types
 # neko = Neko(...)
 
-# Note: If your function has a unique name you can ignore “name” parameter
 @neko.function(name='menu_something')  # Pass the menu name to the “name” argument
 async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
     # Return True if you want start menu to be shown to a user
     pass
 ```
+> Note\: If your function has a unique name you can omit the “name” parameter
 
 ## Extras
 #### Pulling Neko object from context
@@ -170,6 +197,8 @@ async def _(data: Neko.BuildResponse, message: Union[types.Message, types.Callba
     found: int = 20  # Number of found values
     await data.data.add_pagination(offset=offset, found=found, limit=25)
 ```
+> Call `add_pagination` only before you call `assemble_markup`\.
+
 #### Force message deletion in callback handling
 Sometimes after formatting you may want a message to be resent\, simply set `delete_and_send` to True\:
 ```python

@@ -21,7 +21,8 @@ except ImportError:
 
 class Neko:
     def __init__(self, dp: Dispatcher, storage: BaseStorage, only_messages_in_functions: bool = False,
-                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None):
+                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None,
+                 validate_text_names: bool = True):
         """
         Initialize a dispatcher
         :param dp: Aiogram dispatcher object
@@ -29,18 +30,20 @@ class Neko:
         :param only_messages_in_functions: Set true if you want text function to receive messages explicitly in the
         second parameter
         :param start_function: A custom start function
+        :param validate_text_names: Set False if you want to skip text field validation
         """
         self.bot: Bot = dp.bot
         self.dp: Dispatcher = dp
         self.storage: BaseStorage = storage
         if type(storage) == BaseStorage:
             logging.warning('You are using BaseStorage which doesn\'t save data permanently and is only for tests!')
-        self.texts: Dict[str, Any] = dict()
+        self.texts: Dict[str, Dict[str, Any]] = dict()
         self.functions: Dict[str, Callable[[Neko.BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
                                            Any]] = dict()
         self.only_messages_in_functions: bool = only_messages_in_functions
         self._format_functions: Dict[str, Callable[[Neko.BuildResponse, types.User, Neko], Any]] = dict()
         self._required_text_names: List[str] = ['start', 'wrong_content_type']
+        self._validate_text_names: bool = validate_text_names
         self.start_function: Callable[[Union[types.Message, types.CallbackQuery]],
                                       Any] = start_function or default_start_function
         self.dp.middleware.setup(self.HandlerValidator(self))  # Setup the handler validator middleware
@@ -92,8 +95,8 @@ class Neko:
             text_list = listdir(texts)
             for file in text_list:
                 if file.endswith('.json'):
-                    self.add_texts(texts=f'{texts}/{file}', lang=file.replace('.json', ''))
-                    logging.warning(f'Loaded {file.replace(".json", "")} translation')
+                    self.add_texts(texts=f'{texts}/{file}', lang=file.replace('.json', '').split('_')[0])
+            return
         elif isinstance(texts, str) and not isfile(texts):  # String JSON
             texts = json.loads(texts)
         elif isinstance(texts, str) and isfile(texts):  # File path
@@ -104,11 +107,16 @@ class Neko:
         else:
             raise ValueError('No valid text path or text supplied')
 
-        if isinstance(texts, dict) and not all(elem in texts.keys() for elem in self._required_text_names):
+        if self._validate_text_names and isinstance(texts, dict) \
+                and not all(elem in texts.keys() for elem in self._required_text_names):
             raise ValueError(f'The supplied translation for {lang} does not contain some of the required texts: '
                              f'{self._required_text_names}')
 
-        self.texts[lang] = texts
+        if lang in self.texts.keys():
+            self.texts[lang].update(texts)
+        else:
+            logging.warning(f'Loaded {lang} translation')
+            self.texts[lang] = texts
 
     class BuildResponse:
 
@@ -138,7 +146,6 @@ class Neko:
                 """
                 Assembles markup
                 """
-                markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = markup
 
                 if isinstance(text_format, list):
                     self.text = self.text.format(*text_format)
