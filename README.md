@@ -85,9 +85,10 @@ If you wish to split your files to smaller ones you can add an underscore with a
 
 #### Load your texts into Neko\:
 ```python
-# from NekoGram import Neko, types
-# neko = Neko(...)
-neko.add_texts()
+from NekoGram import Neko
+
+NEKO = Neko(...)
+NEKO.add_texts()
 ```
 > Remember to load your texts before you start your bot\. You can load them dynamically in runtime though\.
 
@@ -113,12 +114,12 @@ Formatters accept the following positional arguments\:
 
 So here\'s an example of formatter to fill the menu above\:
 ```python
-# from NekoGram import Neko, types
-# neko = Neko(...)
+from NekoGram import Neko, types
+NEKO = Neko(...)
 
 # Note: If your formatter has a unique name you can ignore “name” parameter
-@neko.formatter(name='menu_favorite_pet')  # Pass the menu name to the “name” argument
-async def _(data: Neko.BuildResponse, user: types.User, _: Neko):
+@NEKO.formatter(name='menu_favorite_pet')  # Pass the menu name to the “name” argument
+async def _(data: Neko.BuildResponse, user: types.User, neko: Neko):
     user_data = await neko.storage.get_user_data(user_id=user.id)
     await data.data.assemble_markup(text_format={'pet_name': user_data.get('favorite_pet', 'unknown')})
     # Optional return, not required here:
@@ -142,7 +143,7 @@ data.data.extras['answer_only'] = True
 Here\'s how functions work\:
 ![](docs/function-structure.png)
 In your texts you can define `allowed_items` key-value pair which will indicate that we expect certain input from user\.
-You define it as a list of allowed content types like `text`\, `photo`\, `any`\, etc\.\
+You define it as a list of allowed content types like `text`\, `photo`\, `any`\, etc\.
 
 What happens if we expect a photo and user sends text? NekoGram will automatically build the `wrong_content_type` 
 text and respond to the user\.
@@ -155,11 +156,12 @@ Functions accept the following positional arguments\:
 - Neko class instance
 Here's an example of function implementation\:
 ```python
-# from typing import Union
-# from NekoGram import Neko, types
-# neko = Neko(...)
+from typing import Union
+from NekoGram import Neko, types
+NEKO = Neko(...)
 
-@neko.function(name='menu_something')  # Pass the menu name to the “name” argument
+
+@NEKO.function(name='menu_something')  # Pass the menu name to the “name” argument
 async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
     # Return True if you want start menu to be shown to a user
     pass
@@ -167,12 +169,49 @@ async def _(data: Neko.BuildResponse, message: Union[types.Message, types.Callba
 > Note\: If your function has a unique name you can omit the “name” parameter
 
 ## Extras
-#### Pulling Neko object from context
+#### Call data
+NekoGram provides you an easy way to put parameters into callback queries\.\
+To get set your parameter just pass it in the text name after `#` like this\:
+```json
+{
+  "menu_buy_dog_snacks": {
+    "text": "How many bags of dog snacks would you like to order?",
+    "markup": [
+      {"menu_checkout#1": "1"},
+      {"menu_checkout#5": "5"},
+      {"menu_checkout#all": "Your entire stock!"}
+    ]
+  }
+}
+```
+You can see the parameters are passed after `#`\. Now let\'s get the parameters in our `menu_checkout` formatter\:
+```python
+from typing import Optional, Union
+from NekoGram import Neko, types
+NEKO = Neko(...)
+
+
+@NEKO.formatter()
+async def _(data: Neko.BuildResponse, user: types.User, neko: Neko):
+    number_of_bags: Optional[Union[str, int]] = data.data.extras['call_data']
+    # number_of_bags can be 1, 5, all or None
+    if number_of_bags is None:  # Make sure it's not None
+        return
+
+    # Do some stuff here
+```
+> You can get call data in both functions and formatters
+
+So why is the `number_of_bags` marked optional\?\
+This is to let you safely get `call_data` even in menus where it can be absent\.\
+If no parameters are passed `data.data.extras['call_data']` will be `None` and `KeyError` won\'t be raised\.
+#### Pulling a Neko object from context
 If there\'s a case when you manually register a vanilla aiogram handler and want to build a certain text you can 
 always grab Neko class out of context. Here\'s an example\:
 ```python
 from NekoGram import Neko, types
 NEKO = Neko(...)
+
 
 @NEKO.dp.message_handler(content_types=types.ContentType.TEXT)
 async def _(message: types.Message):
@@ -187,11 +226,12 @@ async def _(message: types.Message):
 You can easily paginate your menus using `add_pagination` method like this\:
 ```python
 from NekoGram import Neko, types
+from typing import Union
 NEKO = Neko(...)
 
 @NEKO.function(name='some_name')
 async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
-    offset = data.extras['offset']  # ! Make sure offset is not None
+    offset = data.data.extras['call_data']  # ! Make sure offset is not None
     data = await neko.build_text(text='text_name', user=message.from_user)
     # Do the rest (fetch data, build a markup) here
     found: int = 20  # Number of found values
