@@ -142,7 +142,7 @@ data.data.extras['answer_only'] = True
 Here\'s how functions work\:
 ![](docs/function-structure.png)
 In your texts you can define `allowed_items` key-value pair which will indicate that we expect certain input from user\.
-You define it as a list of allowed content types like `text`\, `photo`\, `any`\, etc\.\
+You define it as a list of allowed content types like `text`\, `photo`\, `any`\, etc\.
 
 What happens if we expect a photo and user sends text? NekoGram will automatically build the `wrong_content_type` 
 text and respond to the user\.
@@ -167,7 +167,40 @@ async def _(data: Neko.BuildResponse, message: Union[types.Message, types.Callba
 > Note\: If your function has a unique name you can omit the “name” parameter
 
 ## Extras
-#### Pulling Neko object from context
+#### Call data
+NekoGram provides you an easy way to put parameters into callback queries\.\
+To get set your parameter just pass it in the text name after `#` like this\:
+```json
+{
+  "menu_buy_dog_snacks": {
+    "text": "How many bags of dog snacks would you like to order?",
+    "markup": [
+      {"menu_checkout#1": "1"},
+      {"menu_checkout#5": "5"},
+      {"menu_checkout#all": "Your entire stock!"}
+    ]
+  }
+}
+```
+You can see the parameters are passed after `#`\. Now let\'s get the parameters in our `menu_checkout` formatter\:
+```python
+from NekoGram import Neko, types
+NEKO = Neko(...)
+@neko.formatter()
+async def _(data: Neko.BuildResponse, user: types.User, _: Neko):
+    number_of_bags: Optional[Union[str, int]] = data.data.extras['call_data']
+    # number_of_bags can be 1, 5, all or None
+    if number_of_bags is None:  # Make sure it's not None
+        return
+
+    # Do some stuff here
+```
+> You can get call data in both functions and formatters
+
+So why is the `number_of_bags` marked optional\?\
+This is to let you safely get `call_data` even in menus where it can be absent\.\
+If no parameters are passed `data.data.extras['call_data']` will be `None` and `KeyError` won\'t be raised\.
+#### Pulling a Neko object from context
 If there\'s a case when you manually register a vanilla aiogram handler and want to build a certain text you can 
 always grab Neko class out of context. Here\'s an example\:
 ```python
@@ -191,7 +224,7 @@ NEKO = Neko(...)
 
 @NEKO.function(name='some_name')
 async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
-    offset = data.extras['offset']  # ! Make sure offset is not None
+    offset = data.extras['call_data']  # ! Make sure offset is not None
     data = await neko.build_text(text='text_name', user=message.from_user)
     # Do the rest (fetch data, build a markup) here
     found: int = 20  # Number of found values
