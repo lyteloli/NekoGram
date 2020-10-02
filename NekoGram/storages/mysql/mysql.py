@@ -1,7 +1,12 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
-from ..base_storage import BaseStorage
-from aiomysql.cursors import DictCursor
+
+try:
+    from aiomysql.cursors import DictCursor
+except ImportError:
+    raise ImportError('Install aiomysql to use MySQLStorage!')
+
 from pymysql import err as mysql_errors
+from ..base_storage import BaseStorage
 from contextlib import suppress
 import aiomysql
 import asyncio
@@ -14,7 +19,7 @@ except ImportError:
 
 class MySQLStorage(BaseStorage):
     def __init__(self, database: str, host: str = 'localhost', port: int = 3306, user: str = 'root',
-                 password: Optional[str] = None, create_pool: bool = True):
+                 password: Optional[str] = None, create_pool: bool = True, default_language: str = 'en'):
         """
         Initialize database
         :param database: Database name
@@ -24,12 +29,15 @@ class MySQLStorage(BaseStorage):
         :param password: Database password
         :param create_pool: Set True if you want to obtain a pool immediately
         """
+
         self.pool: Optional[aiomysql.Pool] = None
         self.host: str = host
         self.port: int = port
         self.user: str = user
         self.password: str = password
         self.database = database
+
+        self.default_language = default_language
 
         if create_pool:
             loop = asyncio.get_event_loop()
@@ -138,13 +146,16 @@ class MySQLStorage(BaseStorage):
                 except mysql_errors.Error:
                     return 0
 
+    async def set_user_language(self, user_id: int, language: str):
+        await self.apply("""UPDATE users SET lang = %s WHERE id = %s""", (language, user_id))
+
     async def get_user_language(self, user_id: int) -> str:
         """
         Get user's language
         :param user_id: Telegram ID of the user
         :return: User's language
         """
-        return (await self.get("""SELECT lang FROM users WHERE id=%s""", user_id)).get('lang', 'en')
+        return (await self.get("""SELECT lang FROM users WHERE id=%s""", user_id)).get('lang', self.default_language)
 
     async def get_user_data(self, user_id: int) -> Union[Dict[str, Any], bool]:
         """
@@ -175,5 +186,8 @@ class MySQLStorage(BaseStorage):
     async def check_user_exists(self, user_id: int) -> bool:
         return bool(await self.check("""SELECT id FROM users WHERE id = %s""", user_id))
 
-    async def create_user(self, user_id: int, language: str):
+    async def create_user(self, user_id: int, language: Optional[str] = None):
+        if language is None:
+            language = self.default_language
+
         await self.apply("""INSERT INTO users (id, lang) VALUES (%s, %s)""", (user_id, language))

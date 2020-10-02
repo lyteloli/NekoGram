@@ -1,4 +1,4 @@
-from NekoGram.storages import MySQLStorage
+from NekoGram.storages.mysql.mysql import MySQLStorage
 from NekoGram import Neko, Bot, Dispatcher
 from aiogram import types
 import os

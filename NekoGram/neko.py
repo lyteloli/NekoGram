@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from .handlers import menu_callback_query_handler, menu_message_handler, default_start_function
 from typing import Dict, List, Any, Callable, Union, Optional, TextIO
+from aiogram.dispatcher.filters.builtin import ChatTypeFilter
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram import Dispatcher, Bot, executor, types
+from .text_processors import add_json_texts
+from .build_response import BuildResponse
 from .filters import StartsWith, HasMenu
+from datetime import datetime, timedelta
 from .storages import BaseStorage
-from os.path import isdir, isfile
-from io import TextIOWrapper
 from copy import deepcopy
 from asyncio import sleep
-from os import listdir
 import logging
 
 try:
@@ -20,33 +21,49 @@ except ImportError:
 
 
 class Neko:
-    def __init__(self, dp: Dispatcher, storage: BaseStorage, only_messages_in_functions: bool = False,
+    def __init__(self, storage: BaseStorage = BaseStorage(), token: Optional[str] = None, bot: Optional[Bot] = None,
+                 dp: Optional[Dispatcher] = None, only_messages_in_functions: bool = False,
                  start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None,
                  validate_text_names: bool = True):
         """
         Initialize a dispatcher
-        :param dp: Aiogram dispatcher object
+        :param token: Telegram bot token
+        :param bot: Aiogram Bot object
+        :param dp: Aiogram Dispatcher object
         :param storage: A class that inherits from BaseDatabase class
         :param only_messages_in_functions: Set true if you want text function to receive messages explicitly in the
         second parameter
         :param start_function: A custom start function
         :param validate_text_names: Set False if you want to skip text field validation
         """
-        self.bot: Bot = dp.bot
-        self.dp: Dispatcher = dp
+        self.bot: Bot
+        self.dp: Dispatcher
+        if dp:
+            self.bot, self.dp = (dp.bot, dp)
+        elif bot:
+            self.bot, self.dp = (bot, Dispatcher(bot=bot))
+        elif token:
+            self.bot, self.dp = (Bot(token=token), Dispatcher(bot=self.bot))
+        else:
+            raise ValueError('No Dispatcher, Bot or token provided during Neko initialization')
+
         self.storage: BaseStorage = storage
-        if type(storage) == BaseStorage:
-            logging.warning('You are using BaseStorage which doesn\'t save data permanently and is only for tests!')
+
+        if type(storage) == BaseStorage:  # Check if BaseStorage is used
+            logging.warning('You are using BaseStorage which does not save data permanently and is only for tests!')
         self.texts: Dict[str, Dict[str, Any]] = dict()
-        self.functions: Dict[str, Callable[[Neko.BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
+
+        self.functions: Dict[str, Callable[[BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
                                            Any]] = dict()
         self.only_messages_in_functions: bool = only_messages_in_functions
-        self._format_functions: Dict[str, Callable[[Neko.BuildResponse, types.User, Neko], Any]] = dict()
+        self.format_functions: Dict[str, Callable[[BuildResponse, types.User, Neko], Any]] = dict()
         self._required_text_names: List[str] = ['start', 'wrong_content_type']
         self._validate_text_names: bool = validate_text_names
         self.start_function: Callable[[Union[types.Message, types.CallbackQuery]],
                                       Any] = start_function or default_start_function
         self.dp.middleware.setup(self.HandlerValidator(self))  # Setup the handler validator middleware
+
+        self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
         self.register_handlers()
 
     class HandlerValidator(BaseMiddleware):
@@ -78,142 +95,43 @@ class Neko:
         """
         Registers default handlers
         """
-        # self.dp.register_errors_handler(self.aiogram_error_handler, exception=aiogram_exc.TelegramAPIError)
-        # self.dp.register_errors_handler(self.runtime_error_handler, exception=Exception)
-        self.dp.register_message_handler(self.start_function, types.ChatType.is_private, commands=['start'])
+        self.dp.register_message_handler(self.start_function, ChatTypeFilter(types.ChatType.PRIVATE),
+                                         commands=['start'])
         self.dp.register_callback_query_handler(menu_callback_query_handler, StartsWith('menu_'))
-        self.dp.register_message_handler(menu_message_handler, types.ChatType.is_private, HasMenu(self.storage),
-                                         content_types=types.ContentType.ANY)
+        self.dp.register_message_handler(menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE),
+                                         HasMenu(self.storage), content_types=types.ContentType.ANY)
 
-    def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations', lang: Optional[str] = None):
+    def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations',
+                  lang: Optional[str] = None, processor: str = 'json'):
         """
         Assigns a required piece of texts to use later
         :param texts: Dictionary or JSON containing texts, path to a file or path to a directory containing texts
         :param lang: Language of the texts
+        :param processor: A text processor to use, currently only JSON is supported
         """
-        if not lang and isinstance(texts, str) and isdir(texts):  # Path to directory containing translations
-            text_list = listdir(texts)
-            for file in text_list:
-                if file.endswith('.json'):
-                    self.add_texts(texts=f'{texts}/{file}', lang=file.replace('.json', '').split('_')[0])
-            return
-        elif isinstance(texts, str) and not isfile(texts):  # String JSON
-            texts = json.loads(texts)
-        elif isinstance(texts, str) and isfile(texts):  # File path
-            with open(texts, 'r') as file:
-                texts = json.load(file)
-        elif isinstance(texts, TextIOWrapper):  # IO JSON file
-            texts = json.load(texts)
+        if processor.lower() == 'json':
+            for language, text in add_json_texts(required_texts=self._required_text_names, texts=texts, lang=lang,
+                                                 validate_text_names=self._validate_text_names).items():
+                if language in self.texts.keys():
+                    self.texts[language].update(text)
+                else:
+                    logging.warning(f'Loaded {language} translation')
+                    self.texts[language] = text
         else:
-            raise ValueError('No valid text path or text supplied')
+            raise ValueError('Wrong text processor name!')
 
-        if self._validate_text_names and isinstance(texts, dict) \
-                and not all(elem in texts.keys() for elem in self._required_text_names):
-            raise ValueError(f'The supplied translation for {lang} does not contain some of the required texts: '
-                             f'{self._required_text_names}')
-
-        if lang in self.texts.keys():
-            self.texts[lang].update(texts)
+    async def get_cached_user_language(self, user_id: Union[int, str]) -> Optional[str]:
+        user_id = str(user_id)
+        if (user_id in self._cached_user_languages.keys() and
+                self._cached_user_languages[user_id]['date'] + timedelta(minutes=20) > datetime.now()):
+            return self._cached_user_languages[user_id]['lang']
         else:
-            logging.warning(f'Loaded {lang} translation')
-            self.texts[lang] = texts
+            return None
 
-    class BuildResponse:
+    async def cache_user_language(self, user_id: Union[str, int], lang: str):
+        self._cached_user_languages[user_id] = {'date': datetime.now(), 'lang': lang}
 
-        class Data:
-            def __init__(self, name: str,
-                         markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup,
-                                                Dict[str, Any]]] = None,
-                         text: Optional[str] = None, no_preview: Optional[bool] = None, silent: Optional[bool] = None,
-                         markup_row_width: Optional[int] = None, parse_mode: Optional[str] = None,
-                         allowed_items: Optional[List[str]] = None, extras: Optional[Dict[str, Any]] = None):
-                self.name: str = name
-                self.text: Optional[str] = text
-                self.no_preview: Optional[bool] = no_preview
-                self.parse_mode: Optional[str] = parse_mode
-                self.silent: Optional[bool] = silent
-                self.markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None
-                self.markup_row_width: int = markup_row_width or 3
-                self.raw_markup: Optional[List[Union[List[str], Dict[str, str]]]] = markup
-                self.extras: Dict[str, Any] = extras or dict()
-                self.allowed_items: Optional[List[str]] = allowed_items
-
-            async def assemble_markup(self, text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
-                                      markup_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
-                                      markup: Optional[Union[types.InlineKeyboardMarkup,
-                                                             types.ReplyKeyboardMarkup]] = None) -> \
-                    Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]]:
-                """
-                Assembles markup
-                """
-
-                if isinstance(text_format, list):
-                    self.text = self.text.format(*text_format)
-                elif isinstance(text_format, dict):
-                    self.text = self.text.format(**text_format)
-                elif text_format is not None:
-                    self.text = self.text.format(text_format)
-
-                if self.raw_markup:
-
-                    for row in self.raw_markup:
-                        row_buttons: List[Union[types.InlineKeyboardButton, types.KeyboardButton]] = []
-
-                        if isinstance(row, dict) and markup is None:
-                            markup = types.InlineKeyboardMarkup(row_width=self.markup_row_width)
-                        elif markup is None:
-                            markup = types.ReplyKeyboardMarkup(row_width=self.markup_row_width, resize_keyboard=True)
-
-                        if isinstance(markup, types.InlineKeyboardMarkup):
-                            for key, value in row.items():
-
-                                if isinstance(markup_format, list):
-                                    key = key.format(*markup_format)
-                                    value = value.format(*markup_format)
-                                elif isinstance(markup_format, dict):
-                                    key = key.format(**markup_format)
-                                    value = value.format(**markup_format)
-                                elif markup_format is not None:
-                                    key = key.format(markup_format)
-                                    value = value.format(markup_format)
-
-                                if key.startswith(('http://', 'https://', 'tg://', 'url.')):
-                                    if key.startswith('url.'):  # Remove the "url." prefix
-                                        key = key[4:]
-                                    row_buttons.append(types.InlineKeyboardButton(text=value, url=key))
-                                else:
-                                    row_buttons.append(types.InlineKeyboardButton(text=value, callback_data=key))
-                        else:
-                            for button in row:
-                                row_buttons.append(types.KeyboardButton(text=button))
-                        markup.add(*row_buttons)
-
-                self.markup = markup
-                return markup
-
-            async def add_pagination(self, offset: int, found: int, limit: int):
-                if offset >= limit and found > limit:
-                    # Add previous and next buttons
-                    self.raw_markup.append({f'{self.name}#{offset - limit}': '⬅️',
-                                            f'{self.name}#{offset + limit}': '➡️'})
-                elif offset >= limit:
-                    self.raw_markup.append({f'{self.name}#{offset - limit}': '⬅️'})
-                elif found > limit:
-                    self.raw_markup.append({f'{self.name}#{offset + limit}': '➡️'})
-
-        def __init__(self, **kwargs):
-            self.function: Optional[Callable[[Neko.BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
-                                             Any]] = kwargs.get('function')
-            self.back_menu: Optional[str] = kwargs.get('back_menu')
-            kwargs.pop('back_menu', None)
-            kwargs.pop('function', None)
-            self.data = self.Data(**kwargs)
-
-        async def answer_menu_call(self, answer: bool = True, answer_only: bool = False):
-            self.data.extras['answer_call']: bool = answer
-            self.data.extras['answer_only']: bool = answer_only
-
-    async def build_text(self, text: str, user: Union[types.User, int], no_formatting: bool = False,
+    async def build_text(self, text: str, user: Union[types.User, int, str], no_formatting: bool = False,
                          formatter_extras: Optional[Dict[str, Any]] = None,
                          text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None) -> BuildResponse:
         """
@@ -225,10 +143,17 @@ class Neko:
         :param formatter_extras: Extras to pass into a formatter
         :return:
         """
-        if not isinstance(user, types.User):  # Instantiate a user if needed
-            user = types.User(id=user)
+        if isinstance(user, str):
+            lang = user
+            user = types.User(language_code=lang)
+        else:
+            if not isinstance(user, types.User):  # Instantiate a user if needed
+                user = types.User(id=user)
 
-        lang: str = await self.storage.get_user_language(user.id)
+            lang: Optional[str] = await self.get_cached_user_language(user_id=user.id)
+            if lang is None:
+                lang: str = await self.storage.get_user_language(user.id)
+                await self.cache_user_language(user_id=user.id, lang=lang)
 
         data: Dict[str, Any] = deepcopy(self.texts.get(lang).get(text))
         extras: Dict[str, Any] = dict()
@@ -239,7 +164,7 @@ class Neko:
         data['extras'] = extras
         data['name'] = text
 
-        response: Neko.BuildResponse = self.BuildResponse(**data)
+        response: BuildResponse = BuildResponse(**data)
 
         if text_format:
             no_formatting = True
@@ -250,9 +175,9 @@ class Neko:
             else:
                 response.data.text = response.data.text.format(text_format)
 
-        if self._format_functions.get(text) and not no_formatting:
-            function_return = await self._format_functions.get(text)(response, user, self)
-            if isinstance(function_return, Neko.BuildResponse):  # If BuildResponse should be replaced
+        if self.format_functions.get(text) and not no_formatting:
+            function_return = await self.format_functions.get(text)(response, user, self)
+            if isinstance(function_return, BuildResponse):  # If BuildResponse should be replaced
                 response = function_return
 
         if response.data.markup is None and response.data.raw_markup:
@@ -263,9 +188,9 @@ class Neko:
     async def check_text_exists(self, text: str) -> bool:
         return text in self.texts[list(self.texts.keys())[0]].keys()
 
-    def register_formatter(self, callback: Callable[[Neko.BuildResponse, types.User, Neko], Any],
+    def register_formatter(self, callback: Callable[[BuildResponse, types.User, Neko], Any],
                            name: Optional[str] = None):
-        self._format_functions[name or callback.__name__] = callback
+        self.format_functions[name or callback.__name__] = callback
 
     def formatter(self, name: Optional[str] = None):
         """
@@ -273,13 +198,13 @@ class Neko:
         :param name: Formatter name
         """
 
-        def decorator(callback: Callable[[Neko.BuildResponse, types.User, Neko], Any]):
+        def decorator(callback: Callable[[BuildResponse, types.User, Neko], Any]):
             self.register_formatter(callback=callback, name=name)
             return callback
 
         return decorator
 
-    def register_function(self, callback: Callable[[Neko.BuildResponse,
+    def register_function(self, callback: Callable[[BuildResponse,
                                                     Union[types.Message, types.CallbackQuery], Neko], Any],
                           name: Optional[str] = None):
         self.functions[name or callback.__name__] = callback
@@ -290,7 +215,7 @@ class Neko:
         :param name: Function name
         """
 
-        def decorator(callback: Callable[[Neko.BuildResponse, Union[types.Message, types.CallbackQuery], Neko], Any]):
+        def decorator(callback: Callable[[BuildResponse, Union[types.Message, types.CallbackQuery], Neko], Any]):
             self.register_function(callback=callback, name=name)
             return callback
 
@@ -300,7 +225,15 @@ class Neko:
         executor.start_polling(self.dp)
 
     async def delete_markup(self, user_id: int):
+        """
+        Remove reply markup for a user
+        :param user_id: Telegram ID/Username of a target user/chat
+        """
         keyboard = types.ReplyKeyboardMarkup([[types.KeyboardButton(text='❌')]], resize_keyboard=True)
         message = await self.bot.send_message(chat_id=user_id, text='❌', reply_markup=keyboard)
         await sleep(0.2)
         await message.delete()
+
+    async def set_user_language(self, user_id: int, language: str):
+        await self.storage.set_user_language(user_id=user_id, language=language)
+        self._cached_user_languages.pop(str(user_id), None)

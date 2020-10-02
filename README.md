@@ -8,6 +8,8 @@ solutions\.\
 NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means you can use all its features\.
 
 # Quick documentation
+> Note\: Always read the documentation for the release you are using\, NekoGram is constantly evolving and features may
+> become outdated
 
 ## Installation
 Required:
@@ -114,12 +116,12 @@ Formatters accept the following positional arguments\:
 
 So here\'s an example of formatter to fill the menu above\:
 ```python
-from NekoGram import Neko, types
+from NekoGram import Neko, types, BuildResponse
 NEKO = Neko(...)
 
 # Note: If your formatter has a unique name you can ignore “name” parameter
 @NEKO.formatter(name='menu_favorite_pet')  # Pass the menu name to the “name” argument
-async def _(data: Neko.BuildResponse, user: types.User, neko: Neko):
+async def _(data: BuildResponse, user: types.User, neko: Neko):
     user_data = await neko.storage.get_user_data(user_id=user.id)
     await data.data.assemble_markup(text_format={'pet_name': user_data.get('favorite_pet', 'unknown')})
     # Optional return, not required here:
@@ -138,6 +140,7 @@ If you want the call to only be answered and no messages sent\/edited add the fo
 ```python
 data.data.extras['answer_only'] = True
 ```
+> Note\: CallbackQuery answer works only in formatters
 
 ## Functions
 Here\'s how functions work\:
@@ -157,16 +160,46 @@ Functions accept the following positional arguments\:
 Here's an example of function implementation\:
 ```python
 from typing import Union
-from NekoGram import Neko, types
+from NekoGram import Neko, types, BuildResponse
 NEKO = Neko(...)
 
 
 @NEKO.function(name='menu_something')  # Pass the menu name to the “name” argument
-async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
+async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
     # Return True if you want start menu to be shown to a user
     pass
 ```
 > Note\: If your function has a unique name you can omit the “name” parameter
+
+
+## Importing functions and formatters from different files
+At first you may want to import all the functions to a single main file and register them all right there\.
+It will work of course but it\'s neither scalable nor convenient\. In NekoGram we have a router implementation\.
+
+Here\'s how our file with functions\/formatters would look like\:
+```python
+# file1.py
+from typing import Union
+from NekoGram import NekoRouter, Neko, types, BuildResponse
+
+router = NekoRouter()
+
+
+@router.function()
+async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
+    # Do some stuff here
+    pass
+```
+
+And here\'s the main file\:
+```python
+from NekoGram import Neko
+from file1 import router as file_1_router
+
+NEKO: Neko = Neko(...)
+
+file_1_router.attach_router(neko=NEKO)
+```
 
 ## Extras
 #### Call data
@@ -187,12 +220,12 @@ To get set your parameter just pass it in the text name after `#` like this\:
 You can see the parameters are passed after `#`\. Now let\'s get the parameters in our `menu_checkout` formatter\:
 ```python
 from typing import Optional, Union
-from NekoGram import Neko, types
+from NekoGram import Neko, types, BuildResponse
 NEKO = Neko(...)
 
 
 @NEKO.formatter()
-async def _(data: Neko.BuildResponse, user: types.User, neko: Neko):
+async def _(data: BuildResponse, user: types.User, neko: Neko):
     number_of_bags: Optional[Union[str, int]] = data.data.extras['call_data']
     # number_of_bags can be 1, 5, all or None
     if number_of_bags is None:  # Make sure it's not None
@@ -225,12 +258,12 @@ async def _(message: types.Message):
 #### Pagination
 You can easily paginate your menus using `add_pagination` method like this\:
 ```python
-from NekoGram import Neko, types
+from NekoGram import Neko, types, BuildResponse
 from typing import Union
 NEKO = Neko(...)
 
 @NEKO.function(name='some_name')
-async def _(data: Neko.BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
+async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
     offset = data.data.extras['call_data']  # ! Make sure offset is not None
     data = await neko.build_text(text='text_name', user=message.from_user)
     # Do the rest (fetch data, build a markup) here
@@ -244,4 +277,15 @@ Sometimes after formatting you may want a message to be resent\, simply set `del
 ```python
 data = await neko.build_text(text='text_name', user=message.from_user)
 data.data.extras['delete_and_send'] = True
+```
+
+#### Changing user language
+Since NekoGram caches user's language to reduce the number of database queries you can\'t do it manually using the 
+preferred storage\.\
+You have to use the following method\:
+```python
+from NekoGram import Neko
+neko = Neko(...)
+
+await neko.set_user_language(user_id=0, language='en')
 ```
