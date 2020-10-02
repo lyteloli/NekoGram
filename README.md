@@ -1,6 +1,7 @@
 # NekoGram
 ###### Creating bots has never been simpler\.
 ##### Join our [Telegram chat @NekoGramDev](https://t.me/NekoGramDev)
+![](docs/nekogram-white.png)
 
 ## Overview
 The idea of NekoGram is to let developers write code as little as possible but still be able implement complex 
