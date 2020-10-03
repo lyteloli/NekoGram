@@ -27,6 +27,10 @@ MySQL storage dependencies:
 ```
 pip install aiomysql
 ```
+PostgreSQL storage dependencies:
+```
+pip install aiopg
+```
 
 ## Structure
 ![](docs/update-structure.png)
@@ -229,6 +233,15 @@ NEKO: Neko = Neko(...)
 
 file_1_router.attach_router(neko=NEKO)
 ```
+
+## Storages
+Storages are one of the core parts of NekoGram, you use them to store all the data in your bot\.\
+Currently NekoGram has the following storages\:
+- MySQLStorage \- `from NekoGram.storages.mysql import MySQLStorage`
+- PGStorage \- `from NekoGram.storages.pg import PGStorage`
+ ⚠️This storage was not tested and may not work as desired
+- BaseStorage \- `from NekoGram.storages import BaseStorage`
+ ⚠️This is a memory storage\, it does not save data permanently
 
 ## Extras
 #### Call data
