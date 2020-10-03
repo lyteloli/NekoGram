@@ -2,44 +2,44 @@
   "start": {
     "text": "Hello, {0}! Please select a topic of your interest",
     "markup": [
-      {"menu_first_topic": "How much do cats sleep?"},
-      {"menu_second_topic": "Have cats been to space?"},
-      {"menu_more_topics": "More"}
+      [{"text": "How much do cats sleep?", "call_data": "menu_first_topic"}],
+      [{"text": "Have cats been to space?", "call_data": "menu_second_topic"}],
+      [{"text": "More", "call_data": "menu_more_topics"}]
     ]
   },
   "wrong_content_type": {},
   "menu_first_topic": {
     "text": "Cats *spend 70% of their lives sleeping*, which is around 13-16 hours a day.",
     "markup": [
-      {"menu_start": "⬅️Back"}
+      [{"text": "⬅️Back", "call_data": "menu_start"}]
     ],
     "parse_mode": "HTML"
   },
   "menu_second_topic": {
     "text": "On October 18th 1963 Felicette, also known as \"Astrocat\" was the first and only cat to go to space.",
     "markup": [
-      {"menu_start": "⬅️Back"}
+      [{"text": "⬅️Back", "call_data": "menu_start"}]
     ]
   },
   "menu_more_topics": {
     "text": "Ok, enough of cats, let's talk about dogs!",
     "markup": [
-      {"menu_first_dog_topic": "The Beatles song \"A Day in the Life\""},
-      {"menu_second_dog_topic": "The oldest dog breed in the world"},
-      {"menu_start": "⬅️Take me back to cats!"}
+      [{"text": "The Beatles song \"A Day in the Life\"", "call_data": "menu_first_dog_topic"}],
+      [{"text": "The oldest dog breed in the world", "call_data": "menu_second_dog_topic"}],
+      [{"text": "⬅️Take me back to cats!", "call_data": "menu_start"}]
     ]
   },
   "menu_first_dog_topic": {
     "text": "In an interview in 2013, Paul McCartney said that he added a frequency only dogs can hear to the Beatles song \"A Day in the Life\".",
     "markup": [
-      {"menu_more_topics": "⬅️Back"}
+      [{"text": "⬅️Back", "call_data": "menu_more_topics"}]
     ]
   },
   "menu_second_dog_topic": {
     "text": "<a href='https://images.pexels.com/photos/1573919/pexels-photo-1573919.jpeg'>&#8203;</a>The Guinness World Record for the oldest dog breed is held by the Saluki. The breed dates back to 329BC.",
     "markup": [
-      {"https://www.pexels.com/photo/brown-saluki-1573919": "Download the picture"},
-      {"menu_more_topics": "⬅️Back"}
+      [{"text": "Download the picture", "url": "https://www.pexels.com/photo/brown-saluki-1573919"}],
+      [{"text": "⬅️Back", "call_data": "menu_more_topics"}]
     ],
     "parse_mode": "HTML"
   }
