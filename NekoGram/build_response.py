@@ -130,7 +130,7 @@ class BuildResponse:
         kwargs.pop('function', None)
         self.data = self.Data(**kwargs)
 
-    async def answer_menu_call(self, answer: bool = True, answer_only: bool = False):
+    def answer_menu_call(self, answer: bool = True, answer_only: bool = False):
         """
         Answer a CallbackQuery (formatters only)
         :param answer: Whether to answer the call
@@ -138,3 +138,9 @@ class BuildResponse:
         """
         self.data.extras['answer_call']: bool = answer
         self.data.extras['answer_only']: bool = answer_only
+
+    def delete_and_send(self):
+        """
+        Deletes the current message and sends a new one
+        """
+        self.data.extras['delete_and_send'] = True

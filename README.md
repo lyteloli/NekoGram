@@ -165,6 +165,10 @@ If you want the call to only be answered and no messages sent\/edited add the fo
 ```python
 data.data.extras['answer_only'] = True
 ```
+Or simply use this method\:
+```python
+data.data.answer_menu_call(answer=True, answer_only=True)
+```
 > Note\: CallbackQuery answer works only in formatters
 
 ## Functions
@@ -302,6 +306,10 @@ Sometimes after formatting you may want a message to be resent\, simply set `del
 ```python
 data = await neko.build_text(text='text_name', user=message.from_user)
 data.data.extras['delete_and_send'] = True
+```
+Or simply\:
+```python
+data.data.delete_and_send()
 ```
 
 #### Changing user language
