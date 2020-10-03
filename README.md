@@ -12,6 +12,8 @@ NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means y
 > Note\: Always read the documentation for the release you are using\, NekoGram is constantly evolving and features may
 > become outdated
 
+#### Current version: 1.1 Beta
+
 ## Installation
 Required:
 ```
@@ -42,14 +44,15 @@ Here is the structure you have to use to build your texts\:
   "{text_name}": {
     "text": "{text}",
     "markup": [
-      {"{callback_data}": "{button_text}"},
-      ["{button_text}", "{button_text}"]
+      [{"text": "Button text", "callback_data": "Some callback data here", "url": "URL here"}],
+      [{"text": "Also button text but this is a reply markup button"}]
     ],
     "parse_mode": null,
     "no_preview": null,
     "silent": null,
     "markup_row_width": 3,
-    "allowed_items": ["{values}"]
+    "allowed_items": ["{values}"],
+    "markup_type": "reply"
   }
 }
 ```
@@ -81,10 +84,14 @@ Here is the structure you have to use to build your texts\:
 
 ##### `Optional[List[str]]` allowed_items
 ###### A list of allowed content types from user\. See the [Functions](#functions) section\.
+
 #### Name your texts\:
 File names should be [IETF language codes](https://en.wikipedia.org/wiki/IETF_language_tag) like `en.json`\.\
-If you wish to split your files to smaller ones you can add an underscore with any text to their names like `en_1.json`\, 
-`en_menus.json`
+If you wish to split your files to smaller ones you can add an underscore with any text to their names like 
+`en_1.json`\, `en_menus.json`
+
+##### `Optional[str]` markup_type
+###### The type of specified markup\. Can be `reply` or `inline`\, defaults to `inline`\.
 
 #### Load your texts into Neko\:
 ```python
@@ -95,6 +102,23 @@ NEKO.add_texts()
 ```
 > Remember to load your texts before you start your bot\. You can load them dynamically in runtime though\.
 
+### More on markup
+As you can see the markup format is a bit different from the native Telegram format (since NekoGram 1\.1)\.
+This is to allow you build dynamic menus easily\. The format is `"markup": [ [ {"key": "value"} ] ]` where keys and 
+values can be\:
+- `str` text \- your text
+- `Optional[str]` call_data \- your callback data
+- `Optional[str]` url \- a URL if your button should be a URL button
+- `Optional[int]` permission_level \- a level of permission to access certain buttons
+
+The `permission_level` might have caught your attention\, you will find this useful in bots with multiple user types
+such as admin\, user\, super admin etc\.\
+So for each button that should be displayed only to admins and super admins you can set `permission_level` to 2 and
+for buttons that should be displayed only to super admins you can set `permission_level` to 3\.
+After that in a formatter you call `assemble_markup` method and specify your `permission_level` there\. 
+The default value is 1 and so is the lowest permission level\.
+> Remember you can\'t have text buttons in inline keyboards and either `call_data` or `url` has to be specified
+
 ## Formatters
 Every single time when a text gets built a formatter is called \(in case such formatter is registered\)
 So let\'s say we have a piece of the following texts\:
@@ -103,7 +127,7 @@ So let\'s say we have a piece of the following texts\:
   "menu_favorite_pet": {
     "text": "Your current favorite pet is {pet_name}",
     "markup": [
-      {"menu_set_favorite_pet": "I now have another favorite pet"}
+      [{"text": "I now have another favorite pet", "call_data": "menu_set_favorite_pet"}]
     ]
   }
 }
@@ -147,7 +171,7 @@ data.data.extras['answer_only'] = True
 Here\'s how functions work\:
 ![](docs/function-structure.png)
 In your texts you can define `allowed_items` key-value pair which will indicate that we expect certain input from user\.
-You define it as a list of allowed content types like `text`\, `photo`\, `any`\, etc\.
+You define it as a list of allowed content types like `text`\, `photo`\, `any`\, `int`\, etc\.
 
 What happens if we expect a photo and user sends text? NekoGram will automatically build the `wrong_content_type` 
 text and respond to the user\.
@@ -211,9 +235,9 @@ To get set your parameter just pass it in the text name after `#` like this\:
   "menu_buy_dog_snacks": {
     "text": "How many bags of dog snacks would you like to order?",
     "markup": [
-      {"menu_checkout#1": "1"},
-      {"menu_checkout#5": "5"},
-      {"menu_checkout#all": "Your entire stock!"}
+      [{"text": "1", "call_data": "menu_checkout#1"}],
+      [{"text": "5", "call_data": "menu_checkout#5"}],
+      [{"text": "Your entire stock!", "call_data": "menu_checkout#all"}]
     ]
   }
 }

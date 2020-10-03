@@ -136,12 +136,12 @@ class Neko:
                          text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None) -> BuildResponse:
         """
         Builds and returns the required text
-        :param text_format: Text format
         :param text: Text name
         :param user: Aiogram user object or its ID
         :param no_formatting: Whether to call a formatter
         :param formatter_extras: Extras to pass into a formatter
-        :return:
+        :param text_format: Text format
+        :return: A BuildResponse object containing all the specified menu fields
         """
         if isinstance(user, str):
             lang = user
