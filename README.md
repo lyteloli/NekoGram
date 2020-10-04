@@ -48,7 +48,7 @@ Here is the structure you have to use to build your texts\:
   "{text_name}": {
     "text": "{text}",
     "markup": [
-      [{"text": "Button text", "callback_data": "Some callback data here", "url": "URL here"}],
+      [{"text": "Button text", "call_data": "Some callback data here", "url": "URL here"}],
       [{"text": "Also button text but this is a reply markup button"}]
     ],
     "parse_mode": null,
@@ -61,7 +61,7 @@ Here is the structure you have to use to build your texts\:
 }
 ```
 #### Explanation\:
-##### `str` text_name
+##### `str` text\_name
 ###### The name of your text\.
 
 ##### `Optional[str]` text
@@ -72,21 +72,21 @@ Here is the structure you have to use to build your texts\:
 - Dict for inline keyboard \(key will be call data and value will be the button text\)
 - List of strings for reply keyboard \(button texts\)\.
 
-##### `Optional[str]` parse_mode
+##### `Optional[str]` parse\_mode
 ###### [Parse mode](https://core.telegram.org/bots/api#formatting-options) to use\. Can be\:
 - HTML
 - MarkdownV2
 
-##### `Optional[bool]` no_preview
+##### `Optional[bool]` no\_preview
 ###### Set `true` if you want to hide link previews in the message\.
 
 ##### `Optional[bool]` silent
 ###### Set `true` if you don't want any notifications when the message is delivered\.
 
-##### `Optional[int]` markup_row_width
+##### `Optional[int]` markup\_row\_width
 ###### Maximal number of buttons in a single row\.
 
-##### `Optional[List[str]]` allowed_items
+##### `Optional[List[str]]` allowed\_items
 ###### A list of allowed content types from user\. See the [Functions](#functions) section\.
 
 #### Name your texts\:
@@ -94,8 +94,11 @@ File names should be [IETF language codes](https://en.wikipedia.org/wiki/IETF_la
 If you wish to split your files to smaller ones you can add an underscore with any text to their names like 
 `en_1.json`\, `en_menus.json`
 
-##### `Optional[str]` markup_type
+##### `Optional[str]` markup\_type
 ###### The type of specified markup\. Can be `reply` or `inline`\, defaults to `inline`\.
+
+##### `Optional[str]` back\_menu
+###### A menu that should be presented to user after clicking the `back button`
 
 #### Load your texts into Neko\:
 ```python
@@ -113,7 +116,7 @@ values can be\:
 - `str` text \- your text
 - `Optional[str]` call_data \- your callback data
 - `Optional[str]` url \- a URL if your button should be a URL button
-- `Optional[int]` permission_level \- a level of permission to access certain buttons
+- `Optional[int]` permission\_level \- a level of permission to access certain buttons
 
 The `permission_level` might have caught your attention\, you will find this useful in bots with multiple user types
 such as admin\, user\, super admin etc\.\

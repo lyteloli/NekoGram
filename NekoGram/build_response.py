@@ -70,7 +70,7 @@ class BuildResponse:
                             text: str = self._apply_formatting(markup_format, button.get('text', '!'))[0]
 
                             button_permission_level: int = button.get('permission_level', 0)
-                            if button_permission_level < permission_level:
+                            if permission_level < button_permission_level:
                                 continue
 
                             row_buttons.append(types.KeyboardButton(text=text))
@@ -93,7 +93,7 @@ class BuildResponse:
                                 raise ValueError('Inline keyboards can\'t contain text buttons (call and url are None)')
 
                             button_permission_level: int = button.get('permission_level', 0)
-                            if button_permission_level < permission_level or (call_data is None and url is None):
+                            if permission_level < button_permission_level:
                                 continue
 
                             text, call_data, url = self._apply_formatting(markup_format, text, call_data, url)

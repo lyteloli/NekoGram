@@ -43,7 +43,8 @@ class Neko:
         elif bot:
             self.bot, self.dp = (bot, Dispatcher(bot=bot))
         elif token:
-            self.bot, self.dp = (Bot(token=token), Dispatcher(bot=self.bot))
+            self.bot = Bot(token=token)
+            self.dp = Dispatcher(bot=self.bot)
         else:
             raise ValueError('No Dispatcher, Bot or token provided during Neko initialization')
 
@@ -221,8 +222,8 @@ class Neko:
 
         return decorator
 
-    def start_polling(self):
-        executor.start_polling(self.dp)
+    def start_polling(self, on_startup: Optional[callable] = None, on_shutdown: Optional[callable] = None):
+        executor.start_polling(self.dp, on_startup=on_startup, on_shutdown=on_shutdown)
 
     async def delete_markup(self, user_id: int):
         """
