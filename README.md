@@ -4,7 +4,7 @@
 ![](docs/nekogram-white.png)
 
 ## Overview
-The idea of NekoGram is to let developers write code as little as possible but still be able implement complex 
+The idea of NekoGram is to let developers write code as little as possible but still be able to implement complex 
 solutions\.\
 NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means you can use all its features\.
 
