@@ -7,7 +7,7 @@ async def menu_message_handler(message: types.Message):
     neko: NekoGram.Neko = message.conf['neko']
     user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(user_id=message.from_user.id)
     current_menu_name: str = user_data.get('menu')
-    current_menu = await neko.build_text(text=current_menu_name, user=message.from_user)
+    current_menu = await neko.build_text(text=current_menu_name, user=message.from_user, no_formatting=True)
     current_menu_step: int = int(current_menu_name.split('_step_')[1]) if '_step_' in current_menu_name else 0
     next_menu_name: str = current_menu_name.split('_step_')[0] + '_step_' + str(current_menu_step + 1)
 
@@ -44,12 +44,13 @@ async def menu_message_handler(message: types.Message):
 
         # Update user data
         if isinstance(message[message.content_type], list):
-            result = message[message.content_type][-1].as_json()
+            result = message[message.content_type][-1].to_python()
         elif isinstance(message[message.content_type], str):
-            result = message[message.content_type]
+            result = {'text': message[message.content_type]}
         else:
-            result = message[message.content_type].as_json()
+            result = message[message.content_type].to_python()
         user_data[current_menu_name] = result
+        user_data[current_menu_name + '_content_type'] = message.content_type
 
     if await neko.check_text_exists(next_menu_name):
         user_data['menu'] = next_menu_name

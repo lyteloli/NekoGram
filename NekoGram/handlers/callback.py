@@ -27,7 +27,7 @@ async def menu_callback_query_handler(call: types.CallbackQuery):
         if data.data.extras.get('answer_only'):  # If only the call answer is required
             return
     # If the current menu has a function, call it
-    if data.function or (neko.functions.get(data.data.name) and not data.data.allowed_items):
+    if not data.data.allowed_items and (data.function or (neko.functions.get(data.data.name))):
         call_or_message = call.message if neko.only_messages_in_functions else call
         if await neko.functions[data.function or new_call_data](data, call_or_message, neko) is True:
             await neko.start_function(call)  # Start function should completely erase all user data

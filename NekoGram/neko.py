@@ -132,9 +132,10 @@ class Neko:
     async def cache_user_language(self, user_id: Union[str, int], lang: str):
         self._cached_user_languages[user_id] = {'date': datetime.now(), 'lang': lang}
 
-    async def build_text(self, text: str, user: Union[types.User, int, str], no_formatting: bool = False,
+    async def build_text(self, text: str, user: types.User, no_formatting: bool = False,
                          formatter_extras: Optional[Dict[str, Any]] = None,
-                         text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None) -> BuildResponse:
+                         text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
+                         lang: Optional[str] = None) -> BuildResponse:
         """
         Builds and returns the required text
         :param text: Text name
@@ -142,16 +143,11 @@ class Neko:
         :param no_formatting: Whether to call a formatter
         :param formatter_extras: Extras to pass into a formatter
         :param text_format: Text format
+        :param lang: Language to use
         :return: A BuildResponse object containing all the specified menu fields
         """
-        if isinstance(user, str):
-            lang = user
-            user = types.User(language_code=lang)
-        else:
-            if not isinstance(user, types.User):  # Instantiate a user if needed
-                user = types.User(id=user)
-
-            lang: Optional[str] = await self.get_cached_user_language(user_id=user.id)
+        if lang is None:
+            lang = await self.get_cached_user_language(user_id=user.id)
             if lang is None:
                 lang: str = await self.storage.get_user_language(user.id)
                 await self.cache_user_language(user_id=user.id, lang=lang)

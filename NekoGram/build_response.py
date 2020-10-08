@@ -61,9 +61,12 @@ class BuildResponse:
                 self.text = self._apply_formatting(text_format, self.text)[0]
 
             if self.raw_markup:
-
                 if markup is None and self.markup_type.lower().startswith('reply'):
                     markup = types.ReplyKeyboardMarkup(row_width=self.markup_row_width, resize_keyboard=True)
+                elif markup is None:
+                    markup = types.InlineKeyboardMarkup(row_width=self.markup_row_width)
+
+                if isinstance(markup, types.ReplyKeyboardMarkup):
                     for row in self.raw_markup:
                         row_buttons: List[Union[types.InlineKeyboardButton, types.KeyboardButton]] = []
                         for button in row:
@@ -76,8 +79,7 @@ class BuildResponse:
                             row_buttons.append(types.KeyboardButton(text=text))
                         markup.add(*row_buttons)
 
-                elif markup is None:  # Default option
-                    markup = types.InlineKeyboardMarkup(row_width=self.markup_row_width)
+                else:
                     for row in self.raw_markup:
                         row_buttons: List[Union[types.InlineKeyboardButton, types.KeyboardButton]] = []
                         for button in row:
