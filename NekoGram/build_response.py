@@ -86,12 +86,13 @@ class BuildResponse:
                             text: str = button.get('text', '!')
                             call_data: Optional[str] = button.get('call_data')
                             url: Optional[str] = button.get('url')
-                            if url and url.startswith('@'):
-                                url = url.replace('@', 'https://t.me/')
-                            elif url and not url.startswith('http://') and not url.startswith('https://'):
-                                raise ValueError('Markup URLs have to start with http:// or https://')
+                            if url:
+                                if url.startswith('@'):
+                                    url = url.replace('@', 'https://t.me/')
+                                elif not url.startswith(('http://', 'https://')):
+                                    raise ValueError('Markup URLs have to start with http:// or https://')
 
-                            if url is None and call_data is None:
+                            elif call_data is None:
                                 raise ValueError('Inline keyboards can\'t contain text buttons (call and url are None)')
 
                             button_permission_level: int = button.get('permission_level', 0)
@@ -108,6 +109,10 @@ class BuildResponse:
 
             self.markup = markup
 
+        @property
+        def call_data(self) -> Optional[str]:
+            return self.extras.get('call_data')
+
         async def add_pagination(self, offset: int, found: int, limit: int):
             """
             Add a pagination
@@ -117,8 +122,7 @@ class BuildResponse:
             """
             if offset >= limit and found > limit:
                 # Add previous and next buttons
-                self.raw_markup.append([{f'{self.name}#{offset - limit}': '⬅️',
-                                        f'{self.name}#{offset + limit}': '➡️'}])
+                self.raw_markup.append([{f'{self.name}#{offset - limit}': '⬅️', f'{self.name}#{offset + limit}': '➡️'}])
             elif offset >= limit:
                 self.raw_markup.append([{f'{self.name}#{offset - limit}': '⬅️'}])
             elif found > limit:

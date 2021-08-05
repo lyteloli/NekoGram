@@ -79,7 +79,8 @@ class MySQLStorage(BaseStorage):
                 try:
                     await cursor.execute(query, args)
                     await conn.commit()
-                except mysql_errors.Error:
+                except mysql_errors.Error as e:
+                    print(e)
                     await conn.rollback()
 
                 if 'insert into' in query.lower():

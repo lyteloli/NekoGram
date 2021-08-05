@@ -31,11 +31,14 @@ async def menu_message_handler(message: types.Message):
         return
 
     if current_menu.data.allowed_items:  # If any item is required to proceed to the next menu step
-        if message.text and 'int' in current_menu.data.allowed_items and message.text.isnumeric():
-            pass
-        elif 'any' in current_menu.data.allowed_items:
-            pass
-        elif message.content_type not in current_menu.data.allowed_items:
+        ok: bool = False
+        for item in current_menu.data.allowed_items:  # Check filters
+            callback = await neko.get_content_filter(name=item)
+            if callback and await callback(message):
+                ok = True
+                break
+
+        if not ok and message.content_type not in current_menu.data.allowed_items:
             data = await neko.build_text(text='wrong_content_type', user=message.from_user)
             await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
                                 disable_web_page_preview=data.data.no_preview, reply=False,

@@ -12,7 +12,7 @@ NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means y
 > Note\: Always read the documentation for the release you are using\, NekoGram is constantly evolving and features may
 > become outdated
 
-#### Current version: 1.1 Beta
+#### Current version: 1.2
 
 ## Installation
 Required:
@@ -182,7 +182,13 @@ data.data.answer_menu_call(answer=True, answer_only=True)
 Here\'s how functions work\:
 ![](docs/function-structure.png)
 In your texts you can define `allowed_items` key-value pair which will indicate that we expect certain input from user\.
-You define it as a list of allowed content types like `text`\, `photo`\, `any`\, `int`\, etc\.
+You define it as a list of allowed Telegram content types and custom filters like `text`\, `photo`\, `any`\, `int`\, 
+`float`\, `http_url`\, `https_url`\, `tg_url`\, `url`\, etc\.
+
+#### Create your own content type filters\:
+To do so\, define a function that accepts exactly one positional parameter of type 
+`Union[aiogram.types.Message, aiogram.types.CallbackQuery]` and returns a bool \(True on match\)\. \
+See examples and default filters in NekoGram\/type\_filters\.py
 
 What happens if we expect a photo and user sends text? NekoGram will automatically build the `wrong_content_type` 
 text and respond to the user\.
@@ -245,6 +251,40 @@ Currently NekoGram has the following storages\:
  ⚠️This storage was not tested and may not work as desired
 - BaseStorage \- `from NekoGram.storages import BaseStorage`
  ⚠️This is a memory storage\, it does not save data permanently
+  
+## The true juice of NekoGram
+Now we talk real business\. Why is NekoGram the fastest\, easiest and most effective way to develop a Telegram bot\? \
+Meet the stepped menus\! Means\? No functions and formatters for sequenced menus\. Here is an example of a small form\:
+```json
+{
+ "menu_form_step_1": {
+  "text": "Hello, what's your name?",
+  "markup": [
+      [{"text": "⬅️Back"}]
+  ],
+   "allowed_items": ["text"],
+   "markup_type": "reply"
+ },
+ "menu_form_step_2": {
+  "text": "Ok, what's the cutest animal in your opinion?",
+  "markup": [
+      [{"text": "⬅️Back"}]
+  ],
+   "allowed_items": ["text"],
+   "markup_type": "reply"
+ }
+}
+```
+Now let us read the received data and return our user to the start menu\:
+```python
+@NEKO.function(name='menu_new_repo_step_2')
+async def _(_: BuildResponse, message: types.Message, neko: Neko):
+    db_data = await neko.storage.get_user_data(user_id=message.from_user.id)
+    user_name = db_data['menu_form_step_1']['text']
+    cutest_animal = db_data['menu_form_step_2']['text']
+    # DO THE REST OF STUFF
+    return True  # To display a start menu to a user
+```
 
 ## Extras
 #### Call data
@@ -271,20 +311,20 @@ NEKO = Neko(...)
 
 @NEKO.formatter()
 async def _(data: BuildResponse, user: types.User, neko: Neko):
-    number_of_bags: Optional[Union[str, int]] = data.data.extras['call_data']
+    number_of_bags: Optional[Union[str, int]] = data.data.call_data
     # number_of_bags can be 1, 5, all or None
     if number_of_bags is None:  # Make sure it's not None
         return
 
     # Do some stuff here
 ```
-> You can get call data in both functions and formatters
+> You can get call data both in functions and formatters
 
 So why is the `number_of_bags` marked optional\?\
 This is to let you safely get `call_data` even in menus where it can be absent\.\
-If no parameters are passed `data.data.extras['call_data']` will be `None` and `KeyError` won\'t be raised\.
+If no parameters are passed `data.data.call_data` will be `None`\.
 #### Pulling a Neko object from context
-If there\'s a case when you manually register a vanilla aiogram handler and want to build a certain text you can 
+If there\'s a case when you manually register a vanilla aiogram handler and want to use NekoGram functionality you can 
 always grab Neko class out of context. Here\'s an example\:
 ```python
 from NekoGram import Neko, types
@@ -309,7 +349,7 @@ NEKO = Neko(...)
 
 @NEKO.function(name='some_name')
 async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQuery], neko: Neko):
-    offset = data.data.extras['call_data']  # ! Make sure offset is not None
+    offset = data.data.call_data  # ! Make sure offset is not None
     data = await neko.build_text(text='text_name', user=message.from_user)
     # Do the rest (fetch data, build a markup) here
     found: int = 20  # Number of found values
@@ -318,18 +358,14 @@ async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQue
 > Call `add_pagination` only before you call `assemble_markup`\.
 
 #### Force message deletion in callback handling
-Sometimes after formatting you may want a message to be resent\, simply set `delete_and_send` to True\:
+Sometimes after formatting you may want a message to be resent\, simply use `delete_and_send` function\:
 ```python
 data = await neko.build_text(text='text_name', user=message.from_user)
-data.data.extras['delete_and_send'] = True
-```
-Or simply\:
-```python
 data.data.delete_and_send()
 ```
 
 #### Changing user language
-Since NekoGram caches user's language to reduce the number of database queries you can\'t do it manually using the 
+Since NekoGram caches user's language to reduce the number of database queries you should not do it manually using the 
 preferred storage\.\
 You have to use the following method\:
 ```python

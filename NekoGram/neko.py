@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from .handlers import menu_callback_query_handler, menu_message_handler, default_start_function
-from typing import Dict, List, Any, Callable, Union, Optional, TextIO
+from typing import Dict, List, Any, Callable, Union, Optional, TextIO, Awaitable
 from aiogram.dispatcher.filters.builtin import ChatTypeFilter
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram import Dispatcher, Bot, executor, types
 from .text_processors import add_json_texts
 from .build_response import BuildResponse
 from .filters import StartsWith, HasMenu
+from .type_filters import _filters_to_dict
 from datetime import datetime, timedelta
 from .storages import BaseStorage
 from copy import deepcopy
@@ -65,6 +66,8 @@ class Neko:
         self.dp.middleware.setup(self.HandlerValidator(self))  # Setup the handler validator middleware
 
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
+        self._message_content_filters: Dict[str, Callable[[Union[types.Message, types.CallbackQuery]],
+                                                          Awaitable[bool]]] = _filters_to_dict()
         self.register_handlers()
 
     class HandlerValidator(BaseMiddleware):
@@ -91,6 +94,19 @@ class Neko:
             call.conf['neko'] = self.neko
             call.message.conf['neko'] = self.neko
             call.message.from_user = call.from_user
+
+    def add_content_filter(self, callback: Callable[[Union[types.Message, types.CallbackQuery]], Awaitable[bool]],
+                           name: Optional[str] = None):
+        if name is None:
+            name = callback.__name__
+        self._message_content_filters[name or callback.__name__] = callback
+
+    async def get_content_filter(self, name: str) -> Callable[[Union[types.Message, types.CallbackQuery]],
+                                                              Awaitable[bool]]:
+        callback = self._message_content_filters.get(name)
+        if not callback:
+            raise RuntimeError(f'Content filter {name} or type does not exist!')
+        return callback
 
     def register_handlers(self):
         """
@@ -153,7 +169,7 @@ class Neko:
                 await self.cache_user_language(user_id=user.id, lang=lang)
 
         data: Dict[str, Any] = deepcopy(self.texts.get(lang).get(text))
-        extras: Dict[str, Any] = dict()
+        extras: Dict[str, Any] = data.get('extras', dict())
 
         if formatter_extras:
             extras.update(formatter_extras)
@@ -182,8 +198,10 @@ class Neko:
 
         return response
 
-    async def check_text_exists(self, text: str) -> bool:
-        return text in self.texts[list(self.texts.keys())[0]].keys()
+    async def check_text_exists(self, text: str, lang: Optional[str] = None) -> bool:
+        if lang is None:
+            lang = list(self.texts.keys())[0]
+        return text in self.texts[lang].keys()
 
     def register_formatter(self, callback: Callable[[BuildResponse, types.User, Neko], Any],
                            name: Optional[str] = None):
