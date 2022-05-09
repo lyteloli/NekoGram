@@ -148,7 +148,7 @@ class MySQLStorage(BaseStorage):
                     return 0
 
     async def set_user_language(self, user_id: int, language: str):
-        await self.apply("""UPDATE users SET lang = %s WHERE id = %s""", (language, user_id))
+        await self.apply('UPDATE users SET lang = %s WHERE id = %s', (language, user_id))
 
     async def get_user_language(self, user_id: int) -> str:
         """
@@ -156,7 +156,7 @@ class MySQLStorage(BaseStorage):
         :param user_id: Telegram ID of the user
         :return: User's language
         """
-        return (await self.get("""SELECT lang FROM users WHERE id=%s""", user_id)).get('lang', self.default_language)
+        return (await self.get('SELECT lang FROM users WHERE id=%s', user_id)).get('lang', self.default_language)
 
     async def get_user_data(self, user_id: int) -> Union[Dict[str, Any], bool]:
         """
@@ -165,7 +165,7 @@ class MySQLStorage(BaseStorage):
         :return: Decoded JSON user data
         """
         try:
-            return json.loads((await self.get("""SELECT data FROM users WHERE id=%s""", user_id)).get('data', '{}'))
+            return json.loads((await self.get('SELECT data FROM users WHERE id=%s', user_id)).get('data', '{}'))
         except TypeError:
             return False
 
@@ -181,14 +181,20 @@ class MySQLStorage(BaseStorage):
             user_data = await self.get_user_data(user_id=user_id)
             user_data.update(data)
 
-        await self.apply("""UPDATE users SET data = %s WHERE id = %s""", (json.dumps(user_data), user_id))
+        await self.apply('UPDATE users SET data = %s WHERE id = %s', (json.dumps(user_data), user_id))
         return user_data
 
     async def check_user_exists(self, user_id: int) -> bool:
-        return bool(await self.check("""SELECT id FROM users WHERE id = %s""", user_id))
+        return bool(await self.check('SELECT id FROM users WHERE id = %s', user_id))
+
+    async def set_last_message_id(self, user_id: int, message_id: int):
+        await self.apply('UPDATE users SET last_message_id = %s WHERE id = %s', (message_id, user_id))
+
+    async def get_last_message_id(self, user_id: int) -> Optional[int]:
+        return (await self.get('SELECT last_message_id FROM users WHERE id = %s', user_id)).get('last_message_id')
 
     async def create_user(self, user_id: int, language: Optional[str] = None):
         if language is None:
             language = self.default_language
 
-        await self.apply("""INSERT INTO users (id, lang) VALUES (%s, %s)""", (user_id, language))
+        await self.apply('INSERT INTO users (id, lang) VALUES (%s, %s)', (user_id, language))

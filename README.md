@@ -2,6 +2,7 @@
 ###### Creating bots has never been simpler\.
 ##### Join our [Telegram chat @NekoGramDev](https://t.me/NekoGramDev)
 ![](docs/nekogram-white.png)
+##### Example bot: [InPostBot](https://github.com/lyteloli/InPostBot)
 
 ## Overview
 The idea of NekoGram is to let developers write code as little as possible but still be able to implement complex 
@@ -10,9 +11,9 @@ NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means y
 
 # Quick documentation
 > Note\: Always read the documentation for the release you are using\, NekoGram is constantly evolving and features may
-> become outdated
+> become outdated\.
 
-#### Current version: 1.2
+#### Current version: 1.3
 
 ## Installation
 Required:
@@ -45,8 +46,10 @@ Texts are one of the core parts of NekoGram\. Right now only JSON texts are supp
 Here is the structure you have to use to build your texts\:
 ```json
 {
+  "lang": "en",
   "{text_name}": {
     "text": "{text}",
+    "alt_text": "{text}",
     "markup": [
       [{"text": "Button text", "call_data": "Some callback data here", "url": "URL here"}],
       [{"text": "Also button text but this is a reply markup button"}]
@@ -56,16 +59,25 @@ Here is the structure you have to use to build your texts\:
     "silent": null,
     "markup_row_width": 3,
     "allowed_items": ["{values}"],
-    "markup_type": "reply"
+    "filter_args": ["{values}"],
+    "markup_type": "reply",
+    "wrong_content_type_text": "{text}",
+    "back_menu": "{menu_name}"
   }
 }
 ```
 #### Explanation\:
+##### `str` lang
+###### The ISO code of your translations file\, defined only once per file
+
 ##### `str` text\_name
 ###### The name of your text\.
 
 ##### `Optional[str]` text
 ###### The text shown to user\. You may use {0} positional formatting or {keyword} formatting\.
+
+##### `Optional[str]` alt_text
+###### Same as text but an alternative one\, in case you want to switch to a different text within the same menu\.
 
 ##### `Optional[Union[Dict[str, str], List[str]]]` markup
 ###### The markup shown to user\. Can be\:
@@ -89,13 +101,14 @@ Here is the structure you have to use to build your texts\:
 ##### `Optional[List[str]]` allowed\_items
 ###### A list of allowed content types from user\. See the [Functions](#functions) section\.
 
-#### Name your texts\:
-File names should be [IETF language codes](https://en.wikipedia.org/wiki/IETF_language_tag) like `en.json`\.\
-If you wish to split your files to smaller ones you can add an underscore with any text to their names like 
-`en_1.json`\, `en_menus.json`
+##### `Optional[List[str]]` filter_args
+###### A list of parameters to pass to content type filters\. See the [Functions](#functions) section\.
 
 ##### `Optional[str]` markup\_type
 ###### The type of specified markup\. Can be `reply` or `inline`\, defaults to `inline`\.
+
+##### `Optional[str]` wrong\_content\_type\_text
+###### A menu that should be presented to user in case of wrong input instead of a default one
 
 ##### `Optional[str]` back\_menu
 ###### A menu that should be presented to user after clicking the `back button`
@@ -111,20 +124,22 @@ NEKO.add_texts()
 
 ### More on markup
 As you can see the markup format is a bit different from the native Telegram format (since NekoGram 1\.1)\.
-This is to allow you build dynamic menus easily\. The format is `"markup": [ [ {"key": "value"} ] ]` where keys and 
+This is to allow you to build dynamic menus easily\. The format is `"markup": [ [ {"key": "value"} ] ]` where keys and 
 values can be\:
 - `str` text \- your text
 - `Optional[str]` call_data \- your callback data
 - `Optional[str]` url \- a URL if your button should be a URL button
-- `Optional[int]` permission\_level \- a level of permission to access certain buttons
+- `Optional[int]` id \- a button id \(to show exact buttons\)
+- `Optional[int]` query \- an inline query \(user will be required to select a chat where to paste the query\)
+- `Optional[int]` cc_query \- an inline query \(the query will be pasted in the current chat\)
 
-The `permission_level` might have caught your attention\, you will find this useful in bots with multiple user types
+The `id` might have caught your attention\, you will find this useful in bots with multiple user types
 such as admin\, user\, super admin etc\.\
-So for each button that should be displayed only to admins and super admins you can set `permission_level` to 2 and
-for buttons that should be displayed only to super admins you can set `permission_level` to 3\.
-After that in a formatter you call `assemble_markup` method and specify your `permission_level` there\. 
-The default value is 1 and so is the lowest permission level\.
-> Remember you can\'t have text buttons in inline keyboards and either `call_data` or `url` has to be specified
+So for each button that should be displayed only to admins and super admins you can set `id` to be equal to any string.
+After that in a formatter you call `assemble_markup` method and specify your `allowed_buttons` there\. 
+Unlisted buttons in the `allowed_buttons` after assembling the markup will not be shown\.
+> Remember you can\'t have text buttons in inline keyboards and either `call_data`, `url`, `query` or `cc_query` 
+> has to be specified\.
 
 ## Formatters
 Every single time when a text gets built a formatter is called \(in case such formatter is registered\)
@@ -142,9 +157,9 @@ So let\'s say we have a piece of the following texts\:
 You can see that `{pet_name}` looks like there should be a value\, and that\'s just right\.
 That\'s what we use formatters for\, so basically they format a given menu\.\
 Formatters accept the following positional arguments\:
-- BuildResponse subclass of Neko class instance \(Neko\.BuildResponse\)
+- BuildResponse subclass of Neko class instance \(NekoGram\.BuildResponse\)
 - Aiogram user \(aiogram\.types\.User\) instance
-- Neko class instance
+- Neko class instance \(NekoGram.Neko\)
 
 So here\'s an example of formatter to fill the menu above\:
 ```python
@@ -159,9 +174,9 @@ async def _(data: BuildResponse, user: types.User, neko: Neko):
     # Optional return, not required here:
     # return data
 ```
-> Note\: you can replace `from aiogram import types` with `from NekoGram import types`
+> Note\: you can replace `from aiogram import types` with `from NekoGram import types`\.
 
-You are not required to return anything but in case the `Neko.BuildResponse` has changed you can return it so 
+You are not required to return anything but in case the `Neko.BuildResponse` has changed you can return it\, so 
 it will be replaced\.
 If you know this menu is being called from a CallbackQuery and want to answer it with the text of a menu you can 
 add the following to your formatter\:
@@ -176,7 +191,7 @@ Or simply use this method\:
 ```python
 data.data.answer_menu_call(answer=True, answer_only=True)
 ```
-> Note\: CallbackQuery answer works only in formatters
+> Note\: answer\_menu\_call method works only in formatters\.
 
 ## Functions
 Here\'s how functions work\:
@@ -184,15 +199,17 @@ Here\'s how functions work\:
 In your texts you can define `allowed_items` key-value pair which will indicate that we expect certain input from user\.
 You define it as a list of allowed Telegram content types and custom filters like `text`\, `photo`\, `any`\, `int`\, 
 `float`\, `http_url`\, `https_url`\, `tg_url`\, `url`\, etc\.
+> Note\: There are a few built-in content filters\, you can find them in NekoGram\/type_filters\.py\.
 
 #### Create your own content type filters\:
-To do so\, define a function that accepts exactly one positional parameter of type 
-`Union[aiogram.types.Message, aiogram.types.CallbackQuery]` and returns a bool \(True on match\)\. \
+To do so\, define a function that accepts the first positional parameter of type
+`Union[aiogram.types.Message, aiogram.types.CallbackQuery]` and, if required, some custom ones 
+and returns a bool \(True on match\)\. \
 See examples and default filters in NekoGram\/type\_filters\.py
 
-What happens if we expect a photo and user sends text? NekoGram will automatically build the `wrong_content_type` 
-text and respond to the user\.
-> Note\: all the values of `allowed_items` should be lowercase\.
+What happens if we expect a photo and user sends text? NekoGram will automatically build the `wrong_content_type`
+\(if `wrong_content_type_text` was not specified in your menu\) text and respond to the user\.
+> Note\: all the values of `allowed_items` should be names of existing content filters\.
 
 When an input is received from a user your function gets called\.\
 Functions accept the following positional arguments\:
@@ -211,7 +228,7 @@ async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQue
     # Return True if you want start menu to be shown to a user
     pass
 ```
-> Note\: If your function has a unique name you can omit the “name” parameter
+> Note\: If your function has a unique name you can omit the “name” parameter\.
 
 
 ## Importing functions and formatters from different files
@@ -232,6 +249,7 @@ async def _(data: BuildResponse, message: Union[types.Message, types.CallbackQue
     # Do some stuff here
     pass
 ```
+> Note\: You can assign content filters to your router as well\.
 
 And here\'s the main file\:
 ```python
@@ -254,7 +272,8 @@ Currently NekoGram has the following storages\:
   
 ## The true juice of NekoGram
 Now we talk real business\. Why is NekoGram the fastest\, easiest and most effective way to develop a Telegram bot\? \
-Meet the stepped menus\! Means\? No functions and formatters for sequenced menus\. Here is an example of a small form\:
+Meet the stepped menus\! Means\? No functions and formatters are required for sequenced menus\. 
+Here is an example of a small form\:
 ```json
 {
  "menu_form_step_1": {
@@ -285,6 +304,8 @@ async def _(_: BuildResponse, message: types.Message, neko: Neko):
     # DO THE REST OF STUFF
     return True  # To display a start menu to a user
 ```
+> Note\: We only define a function for the last step of a menu\, you can still define functions for steps required but
+> in this case you'll have to display the next step of the menu manually\. 
 
 ## Extras
 #### Call data
@@ -318,7 +339,7 @@ async def _(data: BuildResponse, user: types.User, neko: Neko):
 
     # Do some stuff here
 ```
-> You can get call data both in functions and formatters
+> You can get call data both in functions and formatters\.
 
 So why is the `number_of_bags` marked optional\?\
 This is to let you safely get `call_data` even in menus where it can be absent\.\
@@ -367,7 +388,7 @@ data.data.delete_and_send()
 #### Changing user language
 Since NekoGram caches user's language to reduce the number of database queries you should not do it manually using the 
 preferred storage\.\
-You have to use the following method\:
+Instead you have to use the following method\:
 ```python
 from NekoGram import Neko
 neko = Neko(...)

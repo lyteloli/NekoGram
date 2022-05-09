@@ -34,15 +34,24 @@ async def menu_message_handler(message: types.Message):
         ok: bool = False
         for item in current_menu.data.allowed_items:  # Check filters
             callback = await neko.get_content_filter(name=item)
-            if callback and await callback(message):
-                ok = True
+            try:
+                if callback and await callback(message, *current_menu.data.filter_args):
+                    ok = True
+                    break
+            except TypeError:
+                print(f'Some arguments were not passed for the "{item}" type filter')
                 break
 
         if not ok and message.content_type not in current_menu.data.allowed_items:
-            data = await neko.build_text(text='wrong_content_type', user=message.from_user)
+            if current_menu.data.wrong_content_type_text:
+                data = current_menu
+                data.data.text = data.data.wrong_content_type_text
+            else:
+                data = await neko.build_text(text='wrong_content_type', user=message.from_user)
+
             await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
                                 disable_web_page_preview=data.data.no_preview, reply=False,
-                                disable_notification=data.data.silent, reply_markup=data.data.markup)
+                                disable_notification=data.data.silent, reply_markup=current_menu.data.markup)
             return
 
         # Update user data

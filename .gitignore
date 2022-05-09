@@ -7,3 +7,4 @@ Pipfile
 Pipfile.lock
 .DS_Store
 .pytest_cache/
+test.py

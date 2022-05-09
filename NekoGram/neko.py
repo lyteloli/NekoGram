@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from .handlers import menu_callback_query_handler, menu_message_handler, default_start_function
 from typing import Dict, List, Any, Callable, Union, Optional, TextIO, Awaitable
+from .text_processors import BaseProcessor as BaseTextProcessor, JSONProcessor as JSONTextProcessor
 from aiogram.dispatcher.filters.builtin import ChatTypeFilter
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram import Dispatcher, Bot, executor, types
-from .text_processors import add_json_texts
 from .build_response import BuildResponse
 from .filters import StartsWith, HasMenu
 from .type_filters import _filters_to_dict
@@ -24,8 +24,7 @@ except ImportError:
 class Neko:
     def __init__(self, storage: BaseStorage = BaseStorage(), token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, only_messages_in_functions: bool = False,
-                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None,
-                 validate_text_names: bool = True):
+                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None):
         """
         Initialize a dispatcher
         :param token: Telegram bot token
@@ -35,7 +34,6 @@ class Neko:
         :param only_messages_in_functions: Set true if you want text function to receive messages explicitly in the
         second parameter
         :param start_function: A custom start function
-        :param validate_text_names: Set False if you want to skip text field validation
         """
         self.bot: Bot
         self.dp: Dispatcher
@@ -59,15 +57,13 @@ class Neko:
                                            Any]] = dict()
         self.only_messages_in_functions: bool = only_messages_in_functions
         self.format_functions: Dict[str, Callable[[BuildResponse, types.User, Neko], Any]] = dict()
-        self._required_text_names: List[str] = ['start', 'wrong_content_type']
-        self._validate_text_names: bool = validate_text_names
         self.start_function: Callable[[Union[types.Message, types.CallbackQuery]],
                                       Any] = start_function or default_start_function
         self.dp.middleware.setup(self.HandlerValidator(self))  # Setup the handler validator middleware
 
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
-        self._message_content_filters: Dict[str, Callable[[Union[types.Message, types.CallbackQuery]],
-                                                          Awaitable[bool]]] = _filters_to_dict()
+        self.message_content_filters: Dict[str, Callable[[Union[types.Message, types.CallbackQuery]],
+                                                         Awaitable[bool]]] = _filters_to_dict()
         self.register_handlers()
 
     class HandlerValidator(BaseMiddleware):
@@ -99,11 +95,11 @@ class Neko:
                            name: Optional[str] = None):
         if name is None:
             name = callback.__name__
-        self._message_content_filters[name or callback.__name__] = callback
+        self.message_content_filters[name or callback.__name__] = callback
 
-    async def get_content_filter(self, name: str) -> Callable[[Union[types.Message, types.CallbackQuery]],
+    async def get_content_filter(self, name: str) -> Callable[[Union[types.Message, types.CallbackQuery], ...],
                                                               Awaitable[bool]]:
-        callback = self._message_content_filters.get(name)
+        callback = self.message_content_filters.get(name)
         if not callback:
             raise RuntimeError(f'Content filter {name} or type does not exist!')
         return callback
@@ -117,25 +113,25 @@ class Neko:
         self.dp.register_callback_query_handler(menu_callback_query_handler, StartsWith('menu_'))
         self.dp.register_message_handler(menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE),
                                          HasMenu(self.storage), content_types=types.ContentType.ANY)
+        self.dp.register_callback_query_handler(self.start_function, lambda c: c.data == 'start')
 
     def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations',
-                  lang: Optional[str] = None, processor: str = 'json'):
+                  processor: Optional[BaseTextProcessor] = None):
         """
         Assigns a required piece of texts to use later
         :param texts: Dictionary or JSON containing texts, path to a file or path to a directory containing texts
-        :param lang: Language of the texts
-        :param processor: A text processor to use, currently only JSON is supported
+        :param processor: A text processor to use (a class inherited from text_processors.BaseProcessor),
+        JSONProcessor by default
         """
-        if processor.lower() == 'json':
-            for language, text in add_json_texts(required_texts=self._required_text_names, texts=texts, lang=lang,
-                                                 validate_text_names=self._validate_text_names).items():
-                if language in self.texts.keys():
-                    self.texts[language].update(text)
-                else:
-                    logging.warning(f'Loaded {language} translation')
-                    self.texts[language] = text
-        else:
-            raise ValueError('Wrong text processor name!')
+        if processor is None:
+            processor = JSONTextProcessor()
+
+        for language, text in processor.add_texts(texts=texts).items():
+            if language in self.texts.keys():
+                self.texts[language].update(text)
+            else:
+                logging.warning(f'Loaded {language} translation')
+                self.texts[language] = text
 
     async def get_cached_user_language(self, user_id: Union[int, str]) -> Optional[str]:
         user_id = str(user_id)

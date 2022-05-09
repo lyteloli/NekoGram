@@ -40,6 +40,12 @@ class BaseStorage:
     async def check_user_exists(self, user_id: int) -> bool:
         return bool(self.users.get(str(user_id)))
 
+    async def set_last_message_id(self, user_id: int, message_id: int):
+        pass
+
+    async def get_last_message_id(self, user_id: int) -> Optional[int]:
+        pass
+
     async def create_user(self, user_id: int, language: Optional[str] = None):
         if language is None:
             language = self.default_language

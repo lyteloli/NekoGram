@@ -19,16 +19,60 @@ async def is_any(_: Union[Message, CallbackQuery]) -> bool:
 
 async def is_int(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message text can be converted to integer
+    Checks if message text can be converted to an integer
     :return: True if so
     """
     obj = await _to_message(obj)
     return obj.text and obj.text.isdigit()
 
 
+async def is_int_neg(obj: Union[Message, CallbackQuery]) -> bool:
+    """
+    Checks if message text can be converted to a negative integer
+    :return: True if so
+    """
+    try:
+        return int(obj.text) < 0
+    except ValueError:
+        return False
+
+
+async def is_int_pos(obj: Union[Message, CallbackQuery]) -> bool:
+    """
+    Checks if message text can be converted to a positive integer
+    :return: True if so
+    """
+    try:
+        return int(obj.text) > 0
+    except ValueError:
+        return False
+
+
+async def is_int_smaller_than(obj: Union[Message, CallbackQuery], smaller_than: int = 0) -> bool:
+    """
+    Checks if message text can be converted to an integer smaller than N
+    :return: True if so
+    """
+    try:
+        return int(obj.text) < smaller_than
+    except ValueError:
+        return False
+
+
+async def is_int_greater_than(obj: Union[Message, CallbackQuery], greater_than: int = 0) -> bool:
+    """
+    Checks if message text can be converted to an integer smaller than N
+    :return: True if so
+    """
+    try:
+        return int(obj.text) > greater_than
+    except ValueError:
+        return False
+
+
 async def is_float(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message text can be converted to float
+    Checks if message text can be converted to a float
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -44,9 +88,18 @@ async def is_text(obj: Union[Message, CallbackQuery]) -> bool:
     return bool(obj.text)
 
 
+async def is_text_shorter_than(obj: Union[Message, CallbackQuery], shorter_than: int = 0) -> bool:
+    """
+    Checks if message content is text and is shorter than N characters (inclusive)
+    :return: True if so
+    """
+    obj = await _to_message(obj)
+    return obj.text and len(obj.text) <= shorter_than
+
+
 async def is_photo(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message content is photo
+    Checks if message content is a photo
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -55,7 +108,7 @@ async def is_photo(obj: Union[Message, CallbackQuery]) -> bool:
 
 async def is_video(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message content is video
+    Checks if message content is a video
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -64,7 +117,7 @@ async def is_video(obj: Union[Message, CallbackQuery]) -> bool:
 
 async def is_animation(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message content is GIF
+    Checks if message content is a GIF
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -73,7 +126,7 @@ async def is_animation(obj: Union[Message, CallbackQuery]) -> bool:
 
 async def is_http_url(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message text is a HTTP URL
+    Checks if message text is an HTTP URL
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -82,7 +135,7 @@ async def is_http_url(obj: Union[Message, CallbackQuery]) -> bool:
 
 async def is_https_url(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message text is a HTTPS URL
+    Checks if message text is an HTTPS URL
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -100,7 +153,7 @@ async def is_tg_url(obj: Union[Message, CallbackQuery]) -> bool:
 
 async def is_url(obj: Union[Message, CallbackQuery]) -> bool:
     """
-    Checks if message text is a HTTP/HTTPS/Telegram URL
+    Checks if message text is an HTTP/HTTPS/Telegram URL
     :return: True if so
     """
     obj = await _to_message(obj)
@@ -121,6 +174,7 @@ def _filters_to_dict() -> Dict[str, Callable[[Union[Message, CallbackQuery]], Aw
     Represents all default type filters as a dict
     :return: Type filters dict
     """
-    return dict(int=is_int, float=is_float, text=is_text, photo=is_photo, video=is_video, animation=is_animation,
-                gif=is_animation, http_url=is_http_url, https_url=is_https_url, tg_url=is_tg_url, url=is_url,
-                email=is_email, any=is_any)
+    return {'int': is_int, 'int+': is_int_pos, 'int-': is_int_neg, 'int<': is_int_greater_than,
+            'int>': is_int_greater_than, 'float': is_float, 'text': is_text, 'photo': is_photo, 'video': is_video,
+            'animation': is_animation, 'gif': is_animation, 'http_url': is_http_url, 'https_url': is_https_url,
+            'tg_url': is_tg_url, 'url': is_url, 'email': is_email, 'any': is_any}

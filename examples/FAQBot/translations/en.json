@@ -1,4 +1,5 @@
 {
+  "lang": "en",
   "start": {
     "text": "Hello, {0}! Please select a topic of your interest",
     "markup": [
