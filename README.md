@@ -130,8 +130,8 @@ values can be\:
 - `Optional[str]` call_data \- your callback data
 - `Optional[str]` url \- a URL if your button should be a URL button
 - `Optional[int]` id \- a button id \(to show exact buttons\)
-- `Optional[int]` query \- an inline query \(user will be required to select a chat where to paste the query\)
-- `Optional[int]` cc_query \- an inline query \(the query will be pasted in the current chat\)
+- `Optional[str]` query \- an inline query \(user will be required to select a chat where to paste the query\)
+- `Optional[str]` cc_query \- an inline query \(the query will be pasted in the current chat\)
 
 The `id` might have caught your attention\, you will find this useful in bots with multiple user types
 such as admin\, user\, super admin etc\.\

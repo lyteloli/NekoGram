@@ -131,7 +131,7 @@ class BuildResponse:
 
                             if url:
                                 row_buttons.append(types.InlineKeyboardButton(text=text, url=url))
-                            elif cc_q:
+                            elif cc_q is not None:
                                 row_buttons.append(types.InlineKeyboardButton(text=text,
                                                                               switch_inline_query_current_chat=cc_q))
                             elif query:
