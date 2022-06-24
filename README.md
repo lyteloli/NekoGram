@@ -15,6 +15,27 @@ NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means y
 
 #### Current version: 1.3
 
+## Table of contents
+- [Installation](#installation)
+- [Structure](#structure)
+- [Neko object](#neko-object)
+- [Texts](#texts)
+    - [Explanation](#explanation)
+    - [Loading texts](#load-your-texts-into-neko)
+- [Markup](#more-on-markup)
+- [Formatters](#formatters)
+- [Functions](#functions)
+    - [Custom type filters](#create-your-own-content-type-filters)
+- [Routers](#importing-functions-and-formatters-from-different-files)
+- [Storages](#storages)
+- [Interactive menus made easy](#the-true-juice-of-nekogram)
+- [Extras](#extras)
+    - [Call data](#call-data)
+    - [Pulling Neko from context](#pulling-a-neko-object-from-context)
+    - [Pagination](#pagination)
+    - [Forced message deletion](#force-message-deletion-in-callback-handling)
+    - [Changing user language](#changing-user-language)
+
 ## Installation
 Required:
 ```
@@ -98,7 +119,7 @@ Here is the structure you have to use to build your texts\:
 
 ##### `Optional[str]` alt_text
 ###### Same as text but an alternative one\, in case you want to switch to a different text within the same menu\.
-> Switch between alt_text and text use BuildResponse.switch_alt_text() method.
+> Switch between alt_text and text use BuildResponse.Data.switch_alt_text() method.
 
 ##### `Optional[Union[Dict[str, str], List[str]]]` markup
 ###### The markup shown to user\. Can be\:
