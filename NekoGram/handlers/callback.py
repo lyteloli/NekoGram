@@ -13,14 +13,15 @@ async def menu_callback_query_handler(call: types.CallbackQuery):
         call_data = int(call_data) if call_data.isnumeric() else call_data  # Make data an int if it is numeric
         new_call_data = call.data.split('#')[0]  # Real call
 
-    if new_call_data == 'menu_start':
+    if new_call_data == f'{neko.menu_prefix}start':
         await neko.start_function(call)  # Start function should completely erase all user data
         return
 
     if '_step_' not in new_call_data and not await neko.check_text_exists(new_call_data):
         new_call_data += '_step_1'  # Add a step_1 to the name if such text doesn't exist
 
-    data = await neko.build_text(text=new_call_data, user=call.from_user, formatter_extras={'call_data': call_data})
+    data = await neko.build_text(text=new_call_data, user=call.from_user, formatter_extras={'call_data': call_data},
+                                 obj=call)
 
     if data.data.extras.get('answer_call'):  # If the call should be answered
         await call.answer(text=data.data.text, show_alert=True)

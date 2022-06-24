@@ -41,6 +41,26 @@ What does “build text” mean\?
 Ok\. So first you need to create a project\, create a `{file_name}.py` and clone NekoGram there like so\:\
 ![](docs/project-structure.png)
 
+## Neko object
+Neko is the core object in the library. It gives you the power you crave for, but be careful, 
+**with great power comes great responsibility**.
+```python
+from NekoGram import Neko
+NEKO: Neko = Neko(token='Your bot token here')  # Example Neko object initialization
+```
+Though from the example above Neko initialization seems a piece of cake, it has a lot of options to play with:
+- storage: See [storages](#storages) reference
+- token: Telegram bot token
+- bot: Aiogram Bot object
+- dp: Aiogram Dispatcher object
+- only_messages_in_functions: Set True if you want to get only messages in your functions (see [functions](#functions) reference)
+- start_function: Allows you to define a custom start function and pass it here
+- menu_prefix: If you don't want to use `menu_` as a prefix for every menu you can choose your own prefix instead
+
+> You have to pass only one parameter among `token`, `bot` and `dp`. This is for your convenience. For example if a Bot 
+> object is not used in your code you don't need to initialize it, just pass a token and NekoGram will do everything 
+> for you\.
+
 ## Texts
 Texts are one of the core parts of NekoGram\. Right now only JSON texts are supported.\
 Here is the structure you have to use to build your texts\:
@@ -78,6 +98,7 @@ Here is the structure you have to use to build your texts\:
 
 ##### `Optional[str]` alt_text
 ###### Same as text but an alternative one\, in case you want to switch to a different text within the same menu\.
+> Switch between alt_text and text use BuildResponse.switch_alt_text() method.
 
 ##### `Optional[Union[Dict[str, str], List[str]]]` markup
 ###### The markup shown to user\. Can be\:

@@ -22,9 +22,10 @@ except ImportError:
 
 
 class Neko:
-    def __init__(self, storage: BaseStorage = BaseStorage(), token: Optional[str] = None, bot: Optional[Bot] = None,
+    def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, only_messages_in_functions: bool = False,
-                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None):
+                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None,
+                 menu_prefix: str = 'menu_'):
         """
         Initialize a dispatcher
         :param token: Telegram bot token
@@ -34,6 +35,7 @@ class Neko:
         :param only_messages_in_functions: Set true if you want text function to receive messages explicitly in the
         second parameter
         :param start_function: A custom start function
+        :param menu_prefix: A common prefix for menus defined in translation files
         """
         self.bot: Bot
         self.dp: Dispatcher
@@ -47,10 +49,14 @@ class Neko:
         else:
             raise ValueError('No Dispatcher, Bot or token provided during Neko initialization')
 
+        if storage is None:
+            storage = BaseStorage()
         self.storage: BaseStorage = storage
 
         if type(storage) == BaseStorage:  # Check if BaseStorage is used
             logging.warning('You are using BaseStorage which does not save data permanently and is only for tests!')
+
+        self.menu_prefix: str = menu_prefix
         self.texts: Dict[str, Dict[str, Any]] = dict()
 
         self.functions: Dict[str, Callable[[BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
@@ -110,10 +116,9 @@ class Neko:
         """
         self.dp.register_message_handler(self.start_function, ChatTypeFilter(types.ChatType.PRIVATE),
                                          commands=['start'])
-        self.dp.register_callback_query_handler(menu_callback_query_handler, StartsWith('menu_'))
+        self.dp.register_callback_query_handler(menu_callback_query_handler, StartsWith(self.menu_prefix))
         self.dp.register_message_handler(menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE),
                                          HasMenu(self.storage), content_types=types.ContentType.ANY)
-        self.dp.register_callback_query_handler(self.start_function, lambda c: c.data == 'start')
 
     def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations',
                   processor: Optional[BaseTextProcessor] = None):
@@ -147,7 +152,8 @@ class Neko:
     async def build_text(self, text: str, user: types.User, no_formatting: bool = False,
                          formatter_extras: Optional[Dict[str, Any]] = None,
                          text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
-                         lang: Optional[str] = None) -> BuildResponse:
+                         lang: Optional[str] = None,
+                         obj: Optional[Union[types.Message, types.CallbackQuery]] = None) -> BuildResponse:
         """
         Builds and returns the required text
         :param text: Text name
@@ -156,6 +162,7 @@ class Neko:
         :param formatter_extras: Extras to pass into a formatter
         :param text_format: Text format
         :param lang: Language to use
+        :param obj: An aiogram Message or InlineQuery object
         :return: A BuildResponse object containing all the specified menu fields
         """
         if lang is None:
@@ -165,6 +172,7 @@ class Neko:
                 await self.cache_user_language(user_id=user.id, lang=lang)
 
         data: Dict[str, Any] = deepcopy(self.texts.get(lang).get(text))
+        data['obj'] = obj
         extras: Dict[str, Any] = data.get('extras', dict())
 
         if formatter_extras:

@@ -35,7 +35,8 @@ class BuildResponse:
                      silent: Optional[bool] = None, markup_row_width: Optional[int] = None,
                      parse_mode: Optional[str] = None, allowed_items: Optional[List[str]] = None,
                      extras: Optional[Dict[str, Any]] = None, markup_type: Optional[str] = None,
-                     filter_args: Optional[List[str]] = None, wrong_content_type_text: Optional[str] = None):
+                     filter_args: Optional[List[str]] = None, wrong_content_type_text: Optional[str] = None,
+                     obj: Optional[Union[types.Message, types.InlineQuery]] = None):
             self.name: str = name
             self.text: Optional[str] = text
             self.alt_text: Optional[str] = alt_text
@@ -50,6 +51,7 @@ class BuildResponse:
             self.markup_type: str = markup_type or 'inline'
             self.filter_args: List[Any] = filter_args or list()
             self.wrong_content_type_text: Optional[str] = wrong_content_type_text
+            self.obj: Optional[Union[types.Message, types.CallbackQuery]] = obj
 
         async def send_message(self, user_id: int, neko: NekoGram.Neko) -> NekoGram.types.Message:
             last_message_id = await neko.storage.get_last_message_id(user_id=user_id)
@@ -132,9 +134,11 @@ class BuildResponse:
                             if url:
                                 row_buttons.append(types.InlineKeyboardButton(text=text, url=url))
                             elif cc_q is not None:
+                                cc_q = self._apply_formatting(markup_format, cc_q)[0]
                                 row_buttons.append(types.InlineKeyboardButton(text=text,
                                                                               switch_inline_query_current_chat=cc_q))
                             elif query:
+                                query = self._apply_formatting(markup_format, query)[0]
                                 row_buttons.append(types.InlineKeyboardButton(text=text, switch_inline_query=query))
                             else:
                                 row_buttons.append(types.InlineKeyboardButton(text=text, callback_data=call_data))
@@ -167,6 +171,15 @@ class BuildResponse:
                 self.raw_markup.append([{'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}])
             if shift_last:
                 self.raw_markup.append(last_button)
+
+        def switch_alt_text(self):
+            """
+            Interchanges text and alt_text (for this object only, does not affect loaded texts).
+            Raises ValueError if alt_text is not defined.
+            """
+            if self.alt_text is None:
+                raise ValueError(f'Alt text is not defined for {self.name}!')
+            self.text, self.alt_text = self.alt_text, self.text
 
     def __init__(self, **kwargs):
         self.function: Optional[Callable[[BuildResponse, Union[types.Message, types.CallbackQuery],

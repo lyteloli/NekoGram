@@ -7,7 +7,8 @@ async def menu_message_handler(message: types.Message):
     neko: NekoGram.Neko = message.conf['neko']
     user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(user_id=message.from_user.id)
     current_menu_name: str = user_data.get('menu')
-    current_menu = await neko.build_text(text=current_menu_name, user=message.from_user, no_formatting=True)
+    current_menu = await neko.build_text(text=current_menu_name, user=message.from_user, no_formatting=True,
+                                         obj=message)
     current_menu_step: int = int(current_menu_name.split('_step_')[1]) if '_step_' in current_menu_name else 0
     next_menu_name: str = current_menu_name.split('_step_')[0] + '_step_' + str(current_menu_step + 1)
 
@@ -22,7 +23,7 @@ async def menu_message_handler(message: types.Message):
             await neko.start_function(message)  # Start function should completely erase all user data
             return
 
-        data = await neko.build_text(text=prev_menu_name, user=message.from_user)
+        data = await neko.build_text(text=prev_menu_name, user=message.from_user, obj=message)
         user_data['menu'] = prev_menu_name if data.function or data.data.allowed_items else None
         await neko.storage.set_user_data(data=user_data, user_id=message.from_user.id, replace=True)
         await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
@@ -47,7 +48,7 @@ async def menu_message_handler(message: types.Message):
                 data = current_menu
                 data.data.text = data.data.wrong_content_type_text
             else:
-                data = await neko.build_text(text='wrong_content_type', user=message.from_user)
+                data = await neko.build_text(text='wrong_content_type', user=message.from_user, obj=message)
 
             await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
                                 disable_web_page_preview=data.data.no_preview, reply=False,
@@ -78,7 +79,7 @@ async def menu_message_handler(message: types.Message):
         await neko.start_function(message)  # Start function should completely erase all user data
         return
 
-    next_menu = await neko.build_text(text=next_menu_name, user=message.from_user)
+    next_menu = await neko.build_text(text=next_menu_name, user=message.from_user, obj=message)
 
     await message.reply(text=next_menu.data.text, parse_mode=next_menu.data.parse_mode,
                         disable_web_page_preview=next_menu.data.no_preview, reply=False,

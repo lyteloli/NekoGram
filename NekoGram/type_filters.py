@@ -130,7 +130,8 @@ async def is_http_url(obj: Union[Message, CallbackQuery]) -> bool:
     :return: True if so
     """
     obj = await _to_message(obj)
-    return obj.text and obj.text.startswith('http://')
+    return obj.text and re.fullmatch(r'http://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:'
+                                     r'[-a-zA-Z0-9()@:%_+.~#?&/=]*)$', obj.text)
 
 
 async def is_https_url(obj: Union[Message, CallbackQuery]) -> bool:
@@ -139,7 +140,8 @@ async def is_https_url(obj: Union[Message, CallbackQuery]) -> bool:
     :return: True if so
     """
     obj = await _to_message(obj)
-    return obj.text and obj.text.startswith('https://')
+    return obj.text and re.fullmatch(r'https://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:'
+                                     r'[-a-zA-Z0-9()@:%_+.~#?&/=]*)$', obj.text)
 
 
 async def is_tg_url(obj: Union[Message, CallbackQuery]) -> bool:
@@ -148,7 +150,16 @@ async def is_tg_url(obj: Union[Message, CallbackQuery]) -> bool:
     :return: True if so
     """
     obj = await _to_message(obj)
-    return obj.text and obj.text.startswith('tg://')
+    return obj.text and re.fullmatch(r'tg://[-a-zA-Z0-9_?=]+', obj.text)
+
+
+async def is_mention(obj: Union[Message, CallbackQuery]) -> bool:
+    """
+    Checks if message text is a Telegram user mention
+    :return: True if so
+    """
+    obj = await _to_message(obj)
+    return obj.text and re.fullmatch(r'@[a-zA-Z0-9_]+', obj.text)
 
 
 async def is_url(obj: Union[Message, CallbackQuery]) -> bool:
@@ -157,7 +168,8 @@ async def is_url(obj: Union[Message, CallbackQuery]) -> bool:
     :return: True if so
     """
     obj = await _to_message(obj)
-    return obj.text and obj.text.startswith(('http://', 'https://', 'tg://'))
+    return obj.text and re.fullmatch(r'(http|https|tg)://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:'
+                                     r'[-a-zA-Z0-9()@:%_+.~#?&/=]*)$', obj.text)
 
 
 async def is_email(obj: Union[Message, CallbackQuery]) -> bool:
@@ -166,7 +178,16 @@ async def is_email(obj: Union[Message, CallbackQuery]) -> bool:
     :return: True if so
     """
     obj = await _to_message(obj)
-    return obj.text and re.match(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', obj.text)
+    return obj.text and re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', obj.text)
+
+
+async def is_phone_number(obj: Union[Message, CallbackQuery]) -> bool:
+    """
+    Checks if message text is an international phone number
+    :return: True if so
+    """
+    obj = await _to_message(obj)
+    return obj.text and re.fullmatch(r'\+([0-9]+\s*)?([0-9]+)?[\s0-9\-]+[0-9]+', obj.text)
 
 
 def _filters_to_dict() -> Dict[str, Callable[[Union[Message, CallbackQuery]], Awaitable[bool]]]:
@@ -175,6 +196,7 @@ def _filters_to_dict() -> Dict[str, Callable[[Union[Message, CallbackQuery]], Aw
     :return: Type filters dict
     """
     return {'int': is_int, 'int+': is_int_pos, 'int-': is_int_neg, 'int<': is_int_greater_than,
-            'int>': is_int_greater_than, 'float': is_float, 'text': is_text, 'photo': is_photo, 'video': is_video,
-            'animation': is_animation, 'gif': is_animation, 'http_url': is_http_url, 'https_url': is_https_url,
-            'tg_url': is_tg_url, 'url': is_url, 'email': is_email, 'any': is_any}
+            'int>': is_int_greater_than, 'float': is_float, 'text': is_text, 'text<': is_text_shorter_than,
+            'photo': is_photo, 'video': is_video, 'animation': is_animation, 'gif': is_animation, 'mention': is_mention,
+            'http_url': is_http_url, 'https_url': is_https_url, 'tg_url': is_tg_url, 'url': is_url, 'email': is_email,
+            'international_phone': is_phone_number, 'any': is_any}

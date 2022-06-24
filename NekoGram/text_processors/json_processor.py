@@ -27,6 +27,13 @@ class JSONProcessor(BaseProcessor):
                     if file.endswith('.json'):
                         with open(f'{texts}/{file}', 'r') as text_file:
                             processed_json = json.load(text_file)
+                            lang: Optional[str] = processed_json.get('lang')
+                            if lang is None:
+                                raise ValueError(f'The supplied translation file does not contain a language '
+                                                 f'definition ("lang" field)')
+                            processed_texts[lang] = processed_json
+                return processed_texts
+
             elif not isfile(texts):  # String JSON
                 processed_json = json.loads(texts)
             elif isfile(texts):  # File path
