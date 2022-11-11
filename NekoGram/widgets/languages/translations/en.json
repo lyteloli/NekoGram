@@ -1,0 +1,13 @@
+{
+  "lang": "en",
+  "widget_languages": {
+    "text": "Select a new language",
+    "markup": [
+      [{"text": "⬅️Back", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_languages_set": {
+    "text": "✅Language was set",
+    "next_menu": "menu_start"
+  }
+}

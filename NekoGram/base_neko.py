@@ -132,11 +132,11 @@ class BaseNeko(ABC):
         pass
 
     @abstractmethod
-    def register_markup_overrider(self, callback: callable, name: Optional[str] = None):
+    def register_markup_overrider(self, callback: callable, lang: str, name: Optional[str] = None):
         pass
 
     @abstractmethod
-    def markup_overrider(self, name: Optional[str] = None):
+    def markup_overrider(self, lang: str, name: Optional[str] = None):
         pass
 
     @abstractmethod

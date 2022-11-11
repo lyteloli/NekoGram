@@ -20,10 +20,7 @@
       [{"text": "✏️Edit buttons", "call_data": "widget_broadcast_post_markup"}],
       [{"text": "🚀Start the broadcast", "call_data": "widget_broadcast_broadcast"}],
       [{"text": "⬅️Back", "call_data": "widget_broadcast"}]
-    ],
-    "extras": {
-      "alt_text": "Please select"
-    }
+    ]
   },
   "widget_broadcast_post_preview": {},
   "widget_broadcast_post_markup": {
@@ -56,7 +53,7 @@
     "prev_menu": "widget_broadcast_add_button_step_1"
   },
   "widget_broadcast_broadcast": {
-    "text": "Attempts: {attempts} / {total}\n✅Success: {successful}\n❌Fails: {failed}",
+    "text": "Attempts: {attempts} / {total}\n✅Successful: {successful}\n❌Failed: {failed}",
     "markup": [
       [{"text": "🆗", "call_data": "menu_start", "id": 2}]
     ]

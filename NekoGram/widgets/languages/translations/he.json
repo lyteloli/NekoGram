@@ -1,0 +1,13 @@
+{
+  "lang": "he",
+  "widget_languages": {
+    "text": "בחר שפה חדשה",
+    "markup": [
+      [{"text": "⬅️אחורה", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_languages_set": {
+    "text": "✅שפה שנבחרה",
+    "next_menu": "menu_start"
+  }
+}

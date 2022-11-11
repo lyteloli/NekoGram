@@ -1,0 +1,13 @@
+{
+  "lang": "ru",
+  "widget_languages": {
+    "text": "Выбери новый язык",
+    "markup": [
+      [{"text": "⬅️Назад", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_languages_set": {
+    "text": "✅Язык выбран",
+    "next_menu": "menu_start"
+  }
+}

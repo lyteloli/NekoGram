@@ -1,0 +1,13 @@
+{
+  "lang": "uk",
+  "widget_languages": {
+    "text": "Обери нову мову",
+    "markup": [
+      [{"text": "⬅️Назад", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_languages_set": {
+    "text": "✅Мову обрано",
+    "next_menu": "menu_start"
+  }
+}

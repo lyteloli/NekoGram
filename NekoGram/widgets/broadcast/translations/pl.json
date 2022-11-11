@@ -1,0 +1,61 @@
+{
+  "lang": "pl",
+  "widget_broadcast": {
+    "text": "Proszę o przesłanie zdjęcia, wideo, tekstu lub GIF",
+    "markup": [
+      [{"text": "⬅️Wróć"}]
+    ],
+    "extras": {
+      "alt_text": "Brak użytkowników!"
+    },
+    "markup_type": "reply",
+    "filters": ["text", "photo", "video", "animation"],
+    "validation_error": "Dozwolone jest tylko zdjęcie, wideo, tekst lub GIF",
+    "prev_menu": "menu_start"
+  },
+  "widget_broadcast_post": {
+    "text": "Proszę wybrać",
+    "markup": [
+      [{"text": "👀Zapowiedź", "call_data": "widget_broadcast_post_preview"}],
+      [{"text": "✏️Edytuj przyciski", "call_data": "widget_broadcast_post_markup"}],
+      [{"text": "🚀Rozpocznij transmisję", "call_data": "widget_broadcast_broadcast"}],
+      [{"text": "⬅️Wróć", "call_data": "widget_broadcast"}]
+    ]
+  },
+  "widget_broadcast_post_preview": {},
+  "widget_broadcast_post_markup": {
+    "text": "Kliknij dowolny istniejący przycisk, aby go usunąć",
+    "markup": [
+      [{"text": "➕", "call_data": "widget_broadcast_add_button_step_1#{row_index}"}],
+      [{"text": "⬅️Wróć", "call_data": "widget_broadcast_post"}]
+    ]
+  },
+  "widget_broadcast_remove_button": {},
+  "widget_broadcast_add_button_step_1": {
+    "text": "Wprowadź tekst przycisku",
+    "filters": ["text"],
+    "validation_error": "Dozwolony jest tylko tekst",
+    "markup": [
+      [{"text": "⬅️Wróć"}]
+    ],
+    "markup_type": "reply",
+    "prev_menu": "widget_broadcast_post_markup",
+    "next_menu": "widget_broadcast_add_button_step_2"
+  },
+  "widget_broadcast_add_button_step_2": {
+    "text": "Wprowadź adres URL przycisku lub wzmiankę",
+    "filters": ["url", "mention"],
+    "validation_error": "Dozwolony jest tylko adres URL lub wzmianka",
+    "markup": [
+      [{"text": "⬅️Wróć"}]
+    ],
+    "markup_type": "reply",
+    "prev_menu": "widget_broadcast_add_button_step_1"
+  },
+  "widget_broadcast_broadcast": {
+    "text": "Prób: {attempts} / {total}\n✅Udanych: {successful}\n❌Błędnych: {failed}",
+    "markup": [
+      [{"text": "🆗", "call_data": "menu_start", "id": 2}]
+    ]
+  }
+}

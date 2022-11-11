@@ -1,0 +1,13 @@
+{
+  "lang": "pl",
+  "widget_languages": {
+    "text": "Wybierz nowy język",
+    "markup": [
+      [{"text": "⬅️Wróć", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_languages_set": {
+    "text": "✅Język wybrany",
+    "next_menu": "menu_start"
+  }
+}

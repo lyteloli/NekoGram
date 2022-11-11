@@ -294,7 +294,8 @@ from NekoGram import Neko
 NEKO = Neko(token='YOUR BOT TOKEN')  # Remember to initialize Neko beforehand
 
 async def _():
-    await NEKO.attach_widget(formatters_router=broadcast.FORMATTERS_ROUTER, functions_router=broadcast.FUNCTIONS_ROUTER)
+    await NEKO.attach_widget(formatters_router=broadcast.FORMATTERS_ROUTER, functions_router=broadcast.FUNCTIONS_ROUTER,
+                             startup=broadcast.startup)
 ```
 ##### How to customize widgets?
 There are a few methods that override parts of widget Menus. They are: prev_menu_handlers, next_menu_handlers, 
@@ -311,7 +312,7 @@ async def widget_broadcast(_: Menu) -> str:
     return 'menu_test'
 
 
-@NEKO.markup_overrider()
+@NEKO.markup_overrider(lang='en')  # Enter a language for which to override a keyboard
 async def widget_broadcast_broadcast(_: Menu) -> List[List[Dict[str, str]]]:
     return [[{"text": "🆗", "call_data": "menu_test", "id": 2}]]
 ```

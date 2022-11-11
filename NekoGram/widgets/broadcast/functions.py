@@ -106,8 +106,11 @@ async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, type
             await call.message.edit_text(text=data.text.format(total=total, attempts=attempts,
                                                                successful=successful, failed=failed))
 
-    for item in {'menu', 'widget_broadcast', 'widget_broadcast_post_caption', 'widget_broadcast_content_type'}:
-        user_data.pop(item)
+    for key in user_data.copy().keys():
+        if key.startswith('widget_broadcast'):
+            user_data.pop(key)
+    user_data.pop('menu')
+    await neko.storage.set_user_data(data=user_data, user_id=call.from_user.id, replace=True)
     await data.build(text_format={'total': total, 'attempts': attempts, 'successful': successful,
                                   'failed': failed}, allowed_buttons=[2])
     await data.edit_text()

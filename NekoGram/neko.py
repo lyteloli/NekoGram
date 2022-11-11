@@ -19,7 +19,7 @@ except ImportError:
 
 class Neko(BaseNeko):
     _registration_warned: bool = False
-    _builtin_widgets: List[str] = ['broadcast']
+    _builtin_widgets: List[str] = ['broadcast', 'languages']
     _widgets_warned: bool = False
 
     def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
@@ -38,7 +38,7 @@ class Neko(BaseNeko):
         self.format_functions: Dict[str, Callable[[Menu, types.User, BaseNeko], Awaitable[Any]]] = dict()
         self.prev_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
         self.next_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
-        self._markup_overriders: Dict[str, Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]] = dict()
+        self._markup_overriders: Dict[str, Dict[str, Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]]] = dict()
         self.widgets: List[str] = list()
 
     async def check_text_exists(self, text: str, lang: Optional[str] = None) -> bool:
@@ -135,23 +135,29 @@ class Neko(BaseNeko):
 
         return decorator
 
-    def register_markup_overrider(self, callback: Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]],
+    def register_markup_overrider(self, callback: Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]], lang: str,
                                   name: Optional[str] = None):
         """
         Register a markup overrider
         :param callback: A markup overrider to call
+        :param lang: Language to override markup for
         :param name: Menu name
         """
-        self._markup_overriders[name or callback.__name__] = callback
+        if name is None:
+            name = callback.__name__
+        if name not in self._markup_overriders:
+            self._markup_overriders[name] = dict()
+        self._markup_overriders[name][lang] = callback
 
-    def markup_overrider(self, name: Optional[str] = None):
+    def markup_overrider(self, lang: str, name: Optional[str] = None):
         """
         Register a markup overrider
+        :param lang: Language to override markup for
         :param name: Menu name
         """
 
         def decorator(callback: Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]):
-            self.register_markup_overrider(callback=callback, name=name)
+            self.register_markup_overrider(callback=callback, name=name, lang=lang)
             return callback
 
         return decorator
@@ -175,8 +181,19 @@ class Neko(BaseNeko):
         if not obj:
             raise RuntimeError(f'Neither Message nor CallbackQuery was provided during menu building for {name}! '
                                f'*brain explosion sounds accompanied by intense meowing*')
-        if text is None:
-            raise RuntimeError(f'There is no menu called {name}! *facePAWm*')
+        if text is None:  # Try to fetch the menu in another language
+            if 'en' in self.text_processor.texts.keys():
+                text = self.text_processor.texts['en'].get(name)
+            if text is None:
+                for language in self.text_processor.texts.keys():
+                    text = self.text_processor.texts[language].get(name)
+                    if text:
+                        LOGGER.warning(f'{name} menu does not have {lang} translation, using {language}.')
+                        break
+            else:
+                LOGGER.warning(f'{name} menu does not have {lang} translation, using en.')
+            if text is None:
+                raise RuntimeError(f'There is no menu called {name}! *facePAWm*')
         if text.get('text') is None and text:
             LOGGER.warning(f'No text provided for {name}. *suspicious stare*')
         menu = Menu(name=name, obj=obj, markup=text.get('markup'), markup_row_width=text.get('markup_row_width'),
@@ -186,8 +203,8 @@ class Neko(BaseNeko):
                     markup_type=text.get('markup_type'), prev_menu=text.get('prev_menu'),
                     next_menu=text.get('next_menu'), filters=text.get('filters'), callback_data=callback_data)
 
-        if self._markup_overriders.get(name):
-            menu.raw_markup = await self._markup_overriders[name](menu)
+        if self._markup_overriders.get(name, dict()).get(lang):
+            menu.raw_markup = await self._markup_overriders[name][lang](menu)
 
         format_func = self.format_functions.get(name)
         if format_func:
@@ -209,11 +226,13 @@ class Neko(BaseNeko):
         self.format_functions.update(router.format_functions)
 
     async def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
-                            texts_path: Optional[str] = None, db_table_structure_path: Optional[str] = None):
+                            startup: Callable[[BaseNeko], Awaitable[Any]], texts_path: Optional[str] = None,
+                            db_table_structure_path: Optional[str] = None):
         """
         Attach a widget to Neko
         :param formatters_router: A NekoRouter object responsible for formatters
         :param functions_router: A NekoRouter object responsible for functions
+        :param startup: A startup function to call
         :param texts_path: A path to translation files
         :param db_table_structure_path: A path to table structure file
         """
@@ -227,6 +246,9 @@ class Neko(BaseNeko):
         if formatters_router.name in self.widgets:
             LOGGER.warning(f'Widget {formatters_router.name} is being attached again, ignored. *ultrasonic meowing*')
             return
+
+        await startup(self)
+
         self.widgets.append(formatters_router.name)
         self.attach_router(formatters_router)
         self.attach_router(functions_router)
