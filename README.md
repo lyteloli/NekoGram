@@ -16,9 +16,8 @@ with NekoGram.
 #### Current version: 2.0
 
 ## Installation
-Required:
 ```
-pip install aiogram
+pip install NekoGram
 ```
 Speedups:
 ```
@@ -294,7 +293,8 @@ from NekoGram.widgets import broadcast
 from NekoGram import Neko
 NEKO = Neko(token='YOUR BOT TOKEN')  # Remember to initialize Neko beforehand
 
-NEKO.attach_widget(formatters_router=broadcast.FORMATTERS_ROUTER, functions_router=broadcast.FUNCTIONS_ROUTER)
+async def _():
+    await NEKO.attach_widget(formatters_router=broadcast.FORMATTERS_ROUTER, functions_router=broadcast.FUNCTIONS_ROUTER)
 ```
 ##### How to customize widgets?
 There are a few methods that override parts of widget Menus. They are: prev_menu_handlers, next_menu_handlers, 
@@ -317,6 +317,8 @@ async def widget_broadcast_broadcast(_: Menu) -> List[List[Dict[str, str]]]:
 ```
 In this way we have overriden the menu to which widget entrypoint should return us 
 (if a user decided not to perform a broadcast) and the termination point (when a user finished their broadcast).
+We have overridden the Menus that are inside the 
+[widget folder](https://github.com/lyteloli/NekoGram/blob/master/NekoGram/widgets/broadcast/translations/en.json)
 
 ##### Multi-step menus
 NekoGram allows you to reduce the amount of code by implementing multi-step Menus that may have as few as 
@@ -353,13 +355,13 @@ a function has to be defined. The function should process data and redirect our 
 
 
 # Afterword
-The documentation is still in-progress so check often for updates. It is also planned to add more widgets and push 
-the project to PyPi. If you have anything to add, comment or complain about, please do via our 
+The documentation is still in-progress so check often for updates. It is also planned to add more widgets and make a 
+series of YouTube tutorials. If you have anything to add, comment or complain about, please do so via our 
 [Telegram chat @NekoGramDev](https://t.me/NekoGramDev).
 
-#### A word from lyteloli
+### A word from lyteloli
 NekoGram is my personal creation, I implemented everything on my own and try to share it with people to build a 
-community Telegram bot development enthusiasts, no matter if you're just playing around, doing personal or 
+community of Telegram bot development enthusiasts, no matter if you're just playing around, doing personal or 
 commercial projects. I would be very grateful if you could spread a word about NekoGram, help with its development, 
 [buy me a coffee](https://www.buymeacoffee.com/lyteloli) or mention NekoGram in one of your apps created with it. 
 Any kind of support is warmly welcome.

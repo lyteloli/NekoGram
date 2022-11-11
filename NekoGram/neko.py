@@ -20,6 +20,7 @@ except ImportError:
 class Neko(BaseNeko):
     _registration_warned: bool = False
     _builtin_widgets: List[str] = ['broadcast']
+    _widgets_warned: bool = False
 
     def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
@@ -207,8 +208,8 @@ class Neko(BaseNeko):
         self.functions.update(router.functions)
         self.format_functions.update(router.format_functions)
 
-    def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
-                      texts_path: Optional[str] = None, db_table_structure_path: Optional[str] = None):
+    async def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
+                            texts_path: Optional[str] = None, db_table_structure_path: Optional[str] = None):
         """
         Attach a widget to Neko
         :param formatters_router: A NekoRouter object responsible for formatters
@@ -216,6 +217,9 @@ class Neko(BaseNeko):
         :param texts_path: A path to translation files
         :param db_table_structure_path: A path to table structure file
         """
+        if not isinstance(self.storage, MySQLStorage) and not self._widgets_warned:
+            LOGGER.warning(f'Your storage is not MySQLStorage, widgets may function improperly.')
+            self._widgets_warned = True
         if formatters_router.name is None or formatters_router.name != functions_router.name \
                 or functions_router.name is None:
             raise RuntimeError('Widget router names must be present and must be same for formatter and function router')
