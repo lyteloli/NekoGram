@@ -1,86 +1,91 @@
+from aiogram import types, exceptions as aiogram_exc
 from typing import Union, Dict, Any
-from aiogram import types
+from contextlib import suppress
+from ..logger import LOGGER
 import NekoGram
+
+
+async def default_start_handler(message: types.Message):
+    neko: NekoGram.Neko = message.conf['neko']
+    current_menu = await neko.build_menu(name='start', obj=message)
+    if current_menu is None:
+        raise RuntimeError(f'Start menu formatter should not break execution')
+
+    if neko.functions.get('start'):
+        await neko.functions['start'](current_menu, message, neko)
+        return
+    if not await neko.storage.check_user_exists(user_id=message.from_user.id):
+        lang = message.from_user.language_code
+        await neko.storage.create_user(user_id=message.from_user.id,
+                                       language=lang if lang in neko.text_processor.texts.keys() else None)
+    else:  # Reset user data on start
+        await neko.storage.set_user_data(user_id=message.from_user.id)
+    await current_menu.send_message()
+    with suppress(Exception):
+        await message.delete()
 
 
 async def menu_message_handler(message: types.Message):
     neko: NekoGram.Neko = message.conf['neko']
+    if message.text == '/start':  # Start case
+        await default_start_handler(message)
+        return
+
     user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(user_id=message.from_user.id)
-    current_menu_name: str = user_data.get('menu')
-    current_menu = await neko.build_text(text=current_menu_name, user=message.from_user, no_formatting=True,
-                                         obj=message)
-    current_menu_step: int = int(current_menu_name.split('_step_')[1]) if '_step_' in current_menu_name else 0
-    next_menu_name: str = current_menu_name.split('_step_')[0] + '_step_' + str(current_menu_step + 1)
-
-    if message.text and message.text.startswith('⬅️'):  # If BACK button was clicked
-        await neko.delete_markup(user_id=message.from_user.id)
-        user_data.pop(current_menu_name, None)  # Delete items gathered by the current menu
-        if current_menu.back_menu:
-            prev_menu_name = current_menu.back_menu
-        elif current_menu_step > 1:  # Menu steps start from 1
-            prev_menu_name = current_menu_name.split('_step_')[0] + '_step_' + str(current_menu_step - 1)
-        else:
-            await neko.start_function(message)  # Start function should completely erase all user data
-            return
-
-        data = await neko.build_text(text=prev_menu_name, user=message.from_user, obj=message)
-        user_data['menu'] = prev_menu_name if data.function or data.data.allowed_items else None
-        await neko.storage.set_user_data(data=user_data, user_id=message.from_user.id, replace=True)
-        await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
-                            disable_web_page_preview=data.data.no_preview, reply=False,
-                            disable_notification=data.data.silent, reply_markup=data.data.markup)
+    current_menu = await neko.build_menu(name=user_data['menu'], obj=message)  # Prebuild current menu
+    if current_menu is None:
         return
 
-    if current_menu.data.allowed_items:  # If any item is required to proceed to the next menu step
-        ok: bool = False
-        for item in current_menu.data.allowed_items:  # Check filters
-            callback = await neko.get_content_filter(name=item)
-            try:
-                if callback and await callback(message, *current_menu.data.filter_args):
-                    ok = True
-                    break
-            except TypeError:
-                print(f'Some arguments were not passed for the "{item}" type filter')
+    if message.text and message.text.startswith('⬅️'):  # Back button clicked
+        last_message_id = await neko.storage.get_last_message_id(user_id=message.from_user.id)
+        try:
+            await neko.bot.delete_message(chat_id=message.from_user.id, message_id=last_message_id)
+        except (aiogram_exc.MessageCantBeDeleted, aiogram_exc.MessageToDeleteNotFound):
+            with suppress(Exception):
+                await neko.bot.edit_message_reply_markup(chat_id=message.from_user.id, message_id=last_message_id)
+
+        if neko.prev_menu_handlers.get(current_menu.name):
+            current_menu.prev_menu = await neko.prev_menu_handlers[current_menu.name](current_menu)
+        menu = await neko.build_menu(name=current_menu.prev_menu or 'start', obj=message)
+        if menu is None:
+            return
+        await menu.send_message()
+
+        with suppress(Exception):
+            await message.delete()
+        return
+
+    if current_menu.filters:  # Check filters
+        filters_passed: bool = False
+        for f in current_menu.filters:
+            if await neko.filters[f](message):
+                filters_passed = True
                 break
+    else:
+        filters_passed: bool = True
 
-        if not ok and message.content_type not in current_menu.data.allowed_items:
-            if current_menu.data.wrong_content_type_text:
-                data = current_menu
-                data.data.text = data.data.wrong_content_type_text
-            else:
-                data = await neko.build_text(text='wrong_content_type', user=message.from_user, obj=message)
+    if not filters_passed:  # Wrong data provided
+        current_menu.text = current_menu.validation_error
+        await current_menu.send_message()
+        return
+    else:
+        await neko.storage.set_user_data(data={current_menu.name: message.to_python(),
+                                               'menu': current_menu.next_menu}, user_id=message.from_user.id)
 
-            await message.reply(text=data.data.text, parse_mode=data.data.parse_mode,
-                                disable_web_page_preview=data.data.no_preview, reply=False,
-                                disable_notification=data.data.silent, reply_markup=current_menu.data.markup)
-            return
-
-        # Update user data
-        if isinstance(message[message.content_type], list):
-            result = message[message.content_type][-1].to_python()
-        elif isinstance(message[message.content_type], str):
-            result = {'text': message[message.content_type]}
-        else:
-            result = message[message.content_type].to_python()
-        user_data[current_menu_name] = result
-        user_data[current_menu_name + '_content_type'] = message.content_type
-
-    if await neko.check_text_exists(next_menu_name):
-        user_data['menu'] = next_menu_name
-    await neko.storage.set_user_data(data=user_data, user_id=message.from_user.id, replace=True)
-
-    if neko.functions.get(current_menu_name):  # If the current menu has a function, call it
-        await neko.delete_markup(user_id=message.from_user.id)
-        if await neko.functions[current_menu_name](current_menu, message, neko) is True:
-            await neko.start_function(message)  # Start function should completely erase all user data
+    if neko.functions.get(current_menu.name):  # Execute a function if present
+        await neko.functions[current_menu.name](current_menu, message, neko)
         return
 
-    if not await neko.check_text_exists(next_menu_name):  # Check if text exists, use start if not
-        await neko.start_function(message)  # Start function should completely erase all user data
+    if neko.next_menu_handlers.get(current_menu.name):
+        current_menu.next_menu = await neko.next_menu_handlers[current_menu.name](current_menu)
+
+    if not current_menu.next_menu:  # Next step is undefined
+        LOGGER.warning(f'Unhandled user input for {current_menu.name}. *confused meow*')
+    next_menu = await neko.build_menu(name=current_menu.next_menu or 'start', obj=message)
+    if next_menu is None:
         return
 
-    next_menu = await neko.build_text(text=next_menu_name, user=message.from_user, obj=message)
+    if neko.functions.get(next_menu.name) and not next_menu.filters:  # Execute a function in next menu if no filters
+        await neko.functions[next_menu.name](next_menu, message, neko)
 
-    await message.reply(text=next_menu.data.text, parse_mode=next_menu.data.parse_mode,
-                        disable_web_page_preview=next_menu.data.no_preview, reply=False,
-                        disable_notification=next_menu.data.silent, reply_markup=next_menu.data.markup)
+    await next_menu.send_message()

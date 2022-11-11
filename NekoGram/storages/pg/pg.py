@@ -18,7 +18,7 @@ except ImportError:
 
 class PGStorage(BaseStorage):
     def __init__(self, database: str, host: str = 'localhost', port: int = 5432, user: str = 'root',
-                 password: Optional[str] = None, create_pool: bool = True, default_language: str = 'en'):
+                 password: Optional[str] = None, default_language: str = 'en'):
         """
         Initialize database
         :param database: Database name
@@ -26,7 +26,6 @@ class PGStorage(BaseStorage):
         :param port: Database port
         :param user: Database user
         :param password: Database password
-        :param create_pool: Set True if you want to obtain a pool immediately
         """
 
         self.engine = None
@@ -39,10 +38,8 @@ class PGStorage(BaseStorage):
 
         self.default_language = default_language
 
-        if create_pool:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.acquire_engine())
-        super().__init__()
+        asyncio.run(self.acquire_engine())
+        super().__init__(default_language=default_language)
 
     def __del__(self):
         self.engine.terminate()
@@ -130,6 +127,7 @@ class PGStorage(BaseStorage):
             return 0
 
     async def set_user_language(self, user_id: int, language: str):
+        await super().set_user_language(user_id=user_id, language=language)
         await self.apply('UPDATE users SET lang = %s WHERE id = %s', (language, user_id))
 
     async def get_user_language(self, user_id: int) -> str:
@@ -138,7 +136,11 @@ class PGStorage(BaseStorage):
         :param user_id: Telegram ID of the user
         :return: User's language
         """
-        return (await self.get('SELECT lang FROM users WHERE id=%s', user_id)).get('lang', self.default_language)
+        lang = await self.get_cached_user_language(user_id=user_id)
+        if lang is None:
+            lang = (await self.get('SELECT lang FROM users WHERE id=%s', user_id)).get('lang', self.default_language)
+        await super().set_user_language(user_id=user_id, language=lang)
+        return lang
 
     async def get_user_data(self, user_id: int) -> Union[Dict[str, Any], bool]:
         """
@@ -165,6 +167,13 @@ class PGStorage(BaseStorage):
 
         await self.apply('UPDATE users SET data = %s WHERE id = %s', (json.dumps(user_data), user_id))
         return user_data
+
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None):
+        await self.set_user_data(user_id=user_id, data={'menu': menu})
+        return menu
+
+    async def get_user_menu(self, user_id: int) -> Optional[str]:
+        return (await self.get_user_data(user_id=user_id)).get('menu')
 
     async def check_user_exists(self, user_id: int) -> bool:
         return bool(await self.check('SELECT id FROM users WHERE id = %s', user_id))

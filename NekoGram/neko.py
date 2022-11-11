@@ -1,19 +1,15 @@
-from __future__ import annotations
-
-from .handlers import menu_callback_query_handler, menu_message_handler, default_start_function
-from typing import Dict, List, Any, Callable, Union, Optional, TextIO, Awaitable
-from .text_processors import BaseProcessor as BaseTextProcessor, JSONProcessor as JSONTextProcessor
-from aiogram.dispatcher.filters.builtin import ChatTypeFilter
-from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram import Dispatcher, Bot, executor, types
-from .build_response import BuildResponse
-from .filters import StartsWith, HasMenu
-from .type_filters import _filters_to_dict
-from datetime import datetime, timedelta
+from typing import Dict, List, Union, Optional, Any, Callable, Awaitable
+from .text_processors import BaseProcessor
+from aiogram import Dispatcher, Bot, types
+from .storages.mysql import MySQLStorage
+from .utils import HandlerInjector
 from .storages import BaseStorage
+from .base_neko import BaseNeko
+from .router import NekoRouter
+from datetime import datetime
+from .logger import LOGGER
 from copy import deepcopy
-from asyncio import sleep
-import logging
+from .menus import Menu
 
 try:
     import ujson as json
@@ -21,238 +17,226 @@ except ImportError:
     import json
 
 
-class Neko:
+class Neko(BaseNeko):
+    _registration_warned: bool = False
+    _builtin_widgets: List[str] = ['broadcast']
+
     def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
-                 dp: Optional[Dispatcher] = None, only_messages_in_functions: bool = False,
-                 start_function: Optional[Callable[[Union[types.Message, types.CallbackQuery], Neko], Any]] = None,
-                 menu_prefix: str = 'menu_'):
-        """
-        Initialize a dispatcher
-        :param token: Telegram bot token
-        :param bot: Aiogram Bot object
-        :param dp: Aiogram Dispatcher object
-        :param storage: A class that inherits from BaseDatabase class
-        :param only_messages_in_functions: Set true if you want text function to receive messages explicitly in the
-        second parameter
-        :param start_function: A custom start function
-        :param menu_prefix: A common prefix for menus defined in translation files
-        """
-        self.bot: Bot
-        self.dp: Dispatcher
-        if dp:
-            self.bot, self.dp = (dp.bot, dp)
-        elif bot:
-            self.bot, self.dp = (bot, Dispatcher(bot=bot))
-        elif token:
-            self.bot = Bot(token=token)
-            self.dp = Dispatcher(bot=self.bot)
-        else:
-            raise ValueError('No Dispatcher, Bot or token provided during Neko initialization')
-
-        if storage is None:
-            storage = BaseStorage()
-        self.storage: BaseStorage = storage
-
-        if type(storage) == BaseStorage:  # Check if BaseStorage is used
-            logging.warning('You are using BaseStorage which does not save data permanently and is only for tests!')
-
-        self.menu_prefix: str = menu_prefix
-        self.texts: Dict[str, Dict[str, Any]] = dict()
-
-        self.functions: Dict[str, Callable[[BuildResponse, Union[types.Message, types.CallbackQuery], Neko],
-                                           Any]] = dict()
-        self.only_messages_in_functions: bool = only_messages_in_functions
-        self.format_functions: Dict[str, Callable[[BuildResponse, types.User, Neko], Any]] = dict()
-        self.start_function: Callable[[Union[types.Message, types.CallbackQuery]],
-                                      Any] = start_function or default_start_function
-        self.dp.middleware.setup(self.HandlerValidator(self))  # Setup the handler validator middleware
+                 dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
+                 menu_prefixes: Union[List[str]] = 'menu_', load_texts: bool = True,
+                 callback_parameters_delimiter: str = '#'):
+        super().__init__(storage=storage, token=token, bot=bot, dp=dp, text_processor=text_processor,
+                         menu_prefixes=menu_prefixes, callback_parameters_delimiter=callback_parameters_delimiter)
+        self.dp.middleware.setup(HandlerInjector(self))  # Set up the handler injector middleware
 
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
-        self.message_content_filters: Dict[str, Callable[[Union[types.Message, types.CallbackQuery]],
-                                                         Awaitable[bool]]] = _filters_to_dict()
-        self.register_handlers()
-
-    class HandlerValidator(BaseMiddleware):
-        """
-        Neko injector middleware
-        """
-
-        def __init__(self, neko):
-            self.neko: Neko = neko
-            super(Neko.HandlerValidator, self).__init__()
-
-        async def on_process_message(self, message: types.Message, _: dict):
-            """
-            This handler is called when dispatcher receives a message
-            """
-            # Get current handler
-            message.conf['neko'] = self.neko
-
-        async def on_process_callback_query(self, call: types.CallbackQuery, _: dict):
-            """
-            This handler is called when dispatcher receives a call
-            """
-            # Get current handler
-            call.conf['neko'] = self.neko
-            call.message.conf['neko'] = self.neko
-            call.message.from_user = call.from_user
-
-    def add_content_filter(self, callback: Callable[[Union[types.Message, types.CallbackQuery]], Awaitable[bool]],
-                           name: Optional[str] = None):
-        if name is None:
-            name = callback.__name__
-        self.message_content_filters[name or callback.__name__] = callback
-
-    async def get_content_filter(self, name: str) -> Callable[[Union[types.Message, types.CallbackQuery], ...],
-                                                              Awaitable[bool]]:
-        callback = self.message_content_filters.get(name)
-        if not callback:
-            raise RuntimeError(f'Content filter {name} or type does not exist!')
-        return callback
-
-    def register_handlers(self):
-        """
-        Registers default handlers
-        """
-        self.dp.register_message_handler(self.start_function, ChatTypeFilter(types.ChatType.PRIVATE),
-                                         commands=['start'])
-        self.dp.register_callback_query_handler(menu_callback_query_handler, StartsWith(self.menu_prefix))
-        self.dp.register_message_handler(menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE),
-                                         HasMenu(self.storage), content_types=types.ContentType.ANY)
-
-    def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations',
-                  processor: Optional[BaseTextProcessor] = None):
-        """
-        Assigns a required piece of texts to use later
-        :param texts: Dictionary or JSON containing texts, path to a file or path to a directory containing texts
-        :param processor: A text processor to use (a class inherited from text_processors.BaseProcessor),
-        JSONProcessor by default
-        """
-        if processor is None:
-            processor = JSONTextProcessor()
-
-        for language, text in processor.add_texts(texts=texts).items():
-            if language in self.texts.keys():
-                self.texts[language].update(text)
-            else:
-                logging.warning(f'Loaded {language} translation')
-                self.texts[language] = text
-
-    async def get_cached_user_language(self, user_id: Union[int, str]) -> Optional[str]:
-        user_id = str(user_id)
-        if (user_id in self._cached_user_languages.keys() and
-                self._cached_user_languages[user_id]['date'] + timedelta(minutes=20) > datetime.now()):
-            return self._cached_user_languages[user_id]['lang']
-        else:
-            return None
-
-    async def cache_user_language(self, user_id: Union[str, int], lang: str):
-        self._cached_user_languages[user_id] = {'date': datetime.now(), 'lang': lang}
-
-    async def build_text(self, text: str, user: types.User, no_formatting: bool = False,
-                         formatter_extras: Optional[Dict[str, Any]] = None,
-                         text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
-                         lang: Optional[str] = None,
-                         obj: Optional[Union[types.Message, types.CallbackQuery]] = None) -> BuildResponse:
-        """
-        Builds and returns the required text
-        :param text: Text name
-        :param user: Aiogram user object or its ID
-        :param no_formatting: Whether to call a formatter
-        :param formatter_extras: Extras to pass into a formatter
-        :param text_format: Text format
-        :param lang: Language to use
-        :param obj: An aiogram Message or InlineQuery object
-        :return: A BuildResponse object containing all the specified menu fields
-        """
-        if lang is None:
-            lang = await self.get_cached_user_language(user_id=user.id)
-            if lang is None:
-                lang: str = await self.storage.get_user_language(user.id)
-                await self.cache_user_language(user_id=user.id, lang=lang)
-
-        data: Dict[str, Any] = deepcopy(self.texts.get(lang).get(text))
-        data['obj'] = obj
-        extras: Dict[str, Any] = data.get('extras', dict())
-
-        if formatter_extras:
-            extras.update(formatter_extras)
-
-        data['extras'] = extras
-        data['name'] = text
-
-        response: BuildResponse = BuildResponse(**data)
-
-        if text_format:
-            no_formatting = True
-            if isinstance(text_format, list):
-                response.data.text = response.data.text.format(*text_format)
-            elif isinstance(text_format, dict):
-                response.data.text = response.data.text.format(**text_format)
-            else:
-                response.data.text = response.data.text.format(text_format)
-
-        if self.format_functions.get(text) and not no_formatting:
-            function_return = await self.format_functions.get(text)(response, user, self)
-            if isinstance(function_return, BuildResponse):  # If BuildResponse should be replaced
-                response = function_return
-
-        if response.data.markup is None and response.data.raw_markup:
-            await response.data.assemble_markup()
-
-        return response
+        if load_texts:
+            self.text_processor.add_texts()
+        self.functions: Dict[str, Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko],
+                                           Awaitable[Any]]] = dict()
+        self.format_functions: Dict[str, Callable[[Menu, types.User, BaseNeko], Awaitable[Any]]] = dict()
+        self.prev_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
+        self.next_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
+        self._markup_overriders: Dict[str, Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]] = dict()
+        self.widgets: List[str] = list()
 
     async def check_text_exists(self, text: str, lang: Optional[str] = None) -> bool:
         if lang is None:
-            lang = list(self.texts.keys())[0]
-        return text in self.texts[lang].keys()
+            lang = list(self.text_processor.texts.keys())[0]
+        return text in self.text_processor.texts[lang].keys()
 
-    def register_formatter(self, callback: Callable[[BuildResponse, types.User, Neko], Any],
-                           name: Optional[str] = None):
+    def register_formatter(self, callback: Callable[[Menu, types.User, BaseNeko], Any], name: Optional[str] = None):
+        """
+        Register a formatter
+        :param callback: A formatter to call
+        :param name: Menu name
+        """
+        if not self._registration_warned:
+            LOGGER.warning('It is not recommended to register formatters within a Neko class, '
+                           'consider using a NekoRouter')
+            self._registration_warned = True
         self.format_functions[name or callback.__name__] = callback
 
     def formatter(self, name: Optional[str] = None):
         """
         Register a formatter
-        :param name: Formatter name
+        :param name: Menu name
         """
 
-        def decorator(callback: Callable[[BuildResponse, types.User, Neko], Any]):
+        def decorator(callback: Callable[[Menu, types.User, BaseNeko], Any]):
             self.register_formatter(callback=callback, name=name)
             return callback
 
         return decorator
 
-    def register_function(self, callback: Callable[[BuildResponse,
-                                                    Union[types.Message, types.CallbackQuery], Neko], Any],
+    def register_function(self, callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Any],
                           name: Optional[str] = None):
+        """
+        Register a function
+        :param callback: A function to call
+        :param name: Menu name
+        """
+        if not self._registration_warned:
+            LOGGER.warning('It is not recommended to register functions within a Neko class, '
+                           'consider using a NekoRouter')
+            self._registration_warned = True
         self.functions[name or callback.__name__] = callback
 
     def function(self, name: Optional[str] = None):
         """
         Register a function
-        :param name: Function name
+        :param name: Menu name
         """
 
-        def decorator(callback: Callable[[BuildResponse, Union[types.Message, types.CallbackQuery], Neko], Any]):
+        def decorator(callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Any]):
             self.register_function(callback=callback, name=name)
             return callback
 
         return decorator
 
-    def start_polling(self, on_startup: Optional[callable] = None, on_shutdown: Optional[callable] = None):
-        executor.start_polling(self.dp, on_startup=on_startup, on_shutdown=on_shutdown)
-
-    async def delete_markup(self, user_id: int):
+    def register_prev_menu_handler(self, callback: Callable[[Menu], Awaitable[str]], name: Optional[str] = None):
         """
-        Remove reply markup for a user
-        :param user_id: Telegram ID/Username of a target user/chat
+        Register a prev menu handler
+        :param callback: A prev menu handler to call
+        :param name: Menu name
         """
-        keyboard = types.ReplyKeyboardMarkup([[types.KeyboardButton(text='❌')]], resize_keyboard=True)
-        message = await self.bot.send_message(chat_id=user_id, text='❌', reply_markup=keyboard)
-        await sleep(0.2)
-        await message.delete()
+        self.prev_menu_handlers[name or callback.__name__] = callback
 
-    async def set_user_language(self, user_id: int, language: str):
-        await self.storage.set_user_language(user_id=user_id, language=language)
-        self._cached_user_languages.pop(str(user_id), None)
+    def prev_menu_handler(self, name: Optional[str] = None):
+        """
+        Register a prev menu handler
+        :param name: Menu name
+        """
+
+        def decorator(callback: Callable[[Menu], Awaitable[str]]):
+            self.register_prev_menu_handler(callback=callback, name=name)
+            return callback
+
+        return decorator
+
+    def register_next_menu_handler(self, callback: Callable[[Menu], Awaitable[str]], name: Optional[str] = None):
+        """
+        Register a next menu handler
+        :param callback: A next menu handler to call
+        :param name: Menu name
+        """
+        self.prev_menu_handlers[name or callback.__name__] = callback
+
+    def next_menu_handler(self, name: Optional[str] = None):
+        """
+        Register a next menu handler
+        :param name: Menu name
+        """
+
+        def decorator(callback: Callable[[Menu], Awaitable[str]]):
+            self.register_next_menu_handler(callback=callback, name=name)
+            return callback
+
+        return decorator
+
+    def register_markup_overrider(self, callback: Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]],
+                                  name: Optional[str] = None):
+        """
+        Register a markup overrider
+        :param callback: A markup overrider to call
+        :param name: Menu name
+        """
+        self._markup_overriders[name or callback.__name__] = callback
+
+    def markup_overrider(self, name: Optional[str] = None):
+        """
+        Register a markup overrider
+        :param name: Menu name
+        """
+
+        def decorator(callback: Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]):
+            self.register_markup_overrider(callback=callback, name=name)
+            return callback
+
+        return decorator
+
+    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery],
+                         user_id: Optional[int] = None,
+                         callback_data: Optional[Union[str, int]] = None) -> Optional[Menu]:
+        """
+        Build a menu by its name
+        :param name: Menu name, same as in translation file
+        :param obj: An Aiogram Message or CallbackQuery object
+        :param user_id: An ID of a user to build menu for
+        :param callback_data: Callback data to assign to a menu
+        :return: A Menu object
+        """
+        if name == 'menu_start':  # Start patch
+            name = 'start'
+
+        lang = await self.storage.get_user_language(user_id=user_id or obj.from_user.id)
+        text = deepcopy(self.text_processor.texts[lang].get(name))
+        if not obj:
+            raise RuntimeError(f'Neither Message nor CallbackQuery was provided during menu building for {name}! '
+                               f'*brain explosion sounds accompanied by intense meowing*')
+        if text is None:
+            raise RuntimeError(f'There is no menu called {name}! *facePAWm*')
+        if text.get('text') is None and text:
+            LOGGER.warning(f'No text provided for {name}. *suspicious stare*')
+        menu = Menu(name=name, obj=obj, markup=text.get('markup'), markup_row_width=text.get('markup_row_width'),
+                    text=text.get('text'), no_preview=text.get('no_preview'), parse_mode=text.get('parse_mode'),
+                    silent=text.get('silent'), validation_error=text.get('validation_error'),
+                    extras=text.get('extras'), keyboard_values_to_format=text.get('keyboard_values_to_format'),
+                    markup_type=text.get('markup_type'), prev_menu=text.get('prev_menu'),
+                    next_menu=text.get('next_menu'), filters=text.get('filters'), callback_data=callback_data)
+
+        if self._markup_overriders.get(name):
+            menu.raw_markup = await self._markup_overriders[name](menu)
+
+        format_func = self.format_functions.get(name)
+        if format_func:
+            await format_func(menu, obj.from_user, self)
+            if menu.markup is None and menu.raw_markup:
+                await menu.build()
+        else:
+            await menu.build()
+
+        return menu if not menu.is_broken else None
+
+    def attach_router(self, router: NekoRouter):
+        """
+        Attach a NekoRouter to Neko
+        :param router: A NekoRouter to attach
+        """
+        router.attach()
+        self.functions.update(router.functions)
+        self.format_functions.update(router.format_functions)
+
+    def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
+                      texts_path: Optional[str] = None, db_table_structure_path: Optional[str] = None):
+        """
+        Attach a widget to Neko
+        :param formatters_router: A NekoRouter object responsible for formatters
+        :param functions_router: A NekoRouter object responsible for functions
+        :param texts_path: A path to translation files
+        :param db_table_structure_path: A path to table structure file
+        """
+        if formatters_router.name is None or formatters_router.name != functions_router.name \
+                or functions_router.name is None:
+            raise RuntimeError('Widget router names must be present and must be same for formatter and function router')
+
+        if formatters_router.name in self.widgets:
+            LOGGER.warning(f'Widget {formatters_router.name} is being attached again, ignored. *ultrasonic meowing*')
+            return
+        self.widgets.append(formatters_router.name)
+        self.attach_router(formatters_router)
+        self.attach_router(functions_router)
+
+        if texts_path is None:
+            if formatters_router.name in self._builtin_widgets:
+                texts_path = f'NekoGram/widgets/{formatters_router.name}/translations'
+            else:
+                raise RuntimeError(f'Widget {formatters_router.name} is not builtin, '
+                                   f'therefore texts_path has to be provided')
+        if db_table_structure_path and isinstance(self.storage, MySQLStorage):
+            with open(db_table_structure_path, 'r') as f:
+                table_structure = json.load(f)
+            await self.storage.add_tables(table_structure, required_by=formatters_router.name)
+
+        self.text_processor.add_texts(texts_path, is_widget=True)
+        LOGGER.info(f'{formatters_router.name.capitalize()} widget attached successfully')
