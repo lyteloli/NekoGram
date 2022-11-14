@@ -140,5 +140,6 @@ class BaseNeko(ABC):
         pass
 
     @abstractmethod
-    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery]):
+    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery], user_id: Optional[int] = None,
+                         callback_data: Optional[Union[str, int]] = None, auto_build: bool = True):
         pass

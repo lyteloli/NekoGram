@@ -164,13 +164,15 @@ class Neko(BaseNeko):
 
     async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery],
                          user_id: Optional[int] = None,
-                         callback_data: Optional[Union[str, int]] = None) -> Optional[Menu]:
+                         callback_data: Optional[Union[str, int]] = None,
+                         auto_build: bool = True) -> Optional[Menu]:
         """
         Build a menu by its name
         :param name: Menu name, same as in translation file
         :param obj: An Aiogram Message or CallbackQuery object
         :param user_id: An ID of a user to build menu for
         :param callback_data: Callback data to assign to a menu
+        :param auto_build: Whether to build the Menu if no formatter is defined
         :return: A Menu object
         """
         if name == 'menu_start':  # Start patch
@@ -211,7 +213,7 @@ class Neko(BaseNeko):
             await format_func(menu, obj.from_user, self)
             if menu.markup is None and menu.raw_markup:
                 await menu.build()
-        else:
+        elif auto_build:
             await menu.build()
 
         return menu if not menu.is_broken else None
@@ -227,7 +229,9 @@ class Neko(BaseNeko):
 
     async def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
                             startup: Callable[[BaseNeko], Awaitable[Any]], texts_path: Optional[str] = None,
-                            db_table_structure_path: Optional[str] = None):
+                            db_table_structure_path: Optional[str] = None,
+                            formatters_to_ignore: Optional[List[str]] = None,
+                            functions_to_ignore: Optional[List[str]] = None):
         """
         Attach a widget to Neko
         :param formatters_router: A NekoRouter object responsible for formatters
@@ -235,6 +239,8 @@ class Neko(BaseNeko):
         :param startup: A startup function to call
         :param texts_path: A path to translation files
         :param db_table_structure_path: A path to table structure file
+        :param formatters_to_ignore: A list of formatter names to ignore
+        :param functions_to_ignore: A list of function names to ignore
         """
         if not isinstance(self.storage, MySQLStorage) and not self._widgets_warned:
             LOGGER.warning(f'Your storage is not MySQLStorage, widgets may function improperly.')
@@ -248,8 +254,18 @@ class Neko(BaseNeko):
             return
 
         await startup(self)
-
         self.widgets.append(formatters_router.name)
+
+        if formatters_to_ignore:  # Ignore formatters
+            for name, func in formatters_router.format_functions.copy().items():
+                if name in formatters_to_ignore:
+                    formatters_router.format_functions.pop(name)
+
+        if functions_to_ignore:  # Ignore functions
+            for name, func in functions_router.functions.copy().items():
+                if name in functions_to_ignore:
+                    functions_router.functions.pop(name)
+
         self.attach_router(formatters_router)
         self.attach_router(functions_router)
 

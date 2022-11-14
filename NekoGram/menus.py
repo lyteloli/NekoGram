@@ -103,7 +103,7 @@ class Menu:
 
     async def _format_markup(self, markup: Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup],
                              markup_format: Optional[Union[List[Any], Dict[str, Any], Any]],
-                             allowed_buttons: List[Union[str, int]]) -> \
+                             allowed_buttons: Optional[List[Union[str, int]]]) -> \
             Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]:
         """
         Apply markup format
@@ -112,6 +112,7 @@ class Menu:
         :param allowed_buttons: A list of allowed button IDs
         :return: A formatted markup object
         """
+        filter_buttons: bool = isinstance(allowed_buttons, list)
 
         button_type = types.InlineKeyboardButton \
             if isinstance(markup, types.InlineKeyboardMarkup) else types.KeyboardButton
@@ -119,9 +120,8 @@ class Menu:
         for row in self.raw_markup:  # Fill existing markup
             buttons: Union[List[types.InlineKeyboardButton], List[types.KeyboardButton]] = list()
             for button in row:
-                button_id = button.get('id')
-                if allowed_buttons and button_id not in allowed_buttons:  # Button should be ignored
-                    continue
+                if filter_buttons and button.get('id') is not None and button['id'] not in allowed_buttons:
+                    continue  # Button should be ignored
 
                 if button_type == types.InlineKeyboardButton:  # Inline buttons only
                     for key, value in {'call_data': 'callback_data', 'query': 'switch_inline_query',
@@ -151,8 +151,6 @@ class Menu:
         :param markup: Aiogram markup object
         :param allowed_buttons: In case of access limitation which buttons to display
         """
-        if allowed_buttons is None:
-            allowed_buttons = list()
         if self.text:
             self.text = self._apply_formatting(text_format, self.text)[0]
 

@@ -1,5 +1,6 @@
 from aiogram import exceptions as aiogram_exc, types
 from NekoGram import Neko, Menu, NekoRouter
+from NekoGram.utils import telegraph_upload
 from typing import Union, Dict, List
 from asyncio import sleep
 from io import BytesIO
@@ -15,10 +16,10 @@ async def widget_broadcast(_: Menu, message: Union[types.Message, types.Callback
     user_data['widget_broadcast_post_caption'] = message.html_text if message.text or message.caption else None
     if message.content_type != 'text':  # Upload non-text posts to Telegraph
         if message.photo:
-            f = await (max(message.photo, key=lambda c: c.width)).download(destination_file=BytesIO())
+            f = await (max(message.photo, key=lambda c: c.width)).download(destination=BytesIO())
         else:
-            f = await getattr(message, message.content_type).download(destination_file=BytesIO())
-        url = await utils.tgf_upload(f)
+            f = await getattr(message, message.content_type).download(destination=BytesIO())
+        url = await telegraph_upload(f)
         user_data['widget_broadcast']['file_id'] = url
     user_data['widget_broadcast_content_type'] = message.content_type
 

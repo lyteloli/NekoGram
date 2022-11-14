@@ -202,10 +202,11 @@ NEKO = Neko(token='YOUR BOT TOKEN')  # Remember to initialize a Neko beforehand
 
 @NEKO.function()
 async def menu_enter_age(_: Menu, message: Union[Message, CallbackQuery], __: Neko):
-    data = await NEKO.build_menu(name='menu_result', obj=message)
+    data = await NEKO.build_menu(name='menu_result', obj=message, auto_build=False)
     await data.build(text_format={'age': message.text})
 ```
-Here it is, notice how we can perform formatting within functions, but remember, a Menu must have no Formatter to do so.
+Here it is, notice how we can perform formatting within functions, but remember, a Menu must have no Formatter to do so
+and you need to pass `auto_build=False` because Neko tries to build text automatically if it does not find a formatter.
 > There is a special case: "start" Menu, which is an entrypoint of your bot. You may define a Function for this menu 
 > to override default Neko behavior.
 
