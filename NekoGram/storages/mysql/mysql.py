@@ -4,6 +4,7 @@ from ..base_storage import BaseStorage
 from ...logger import LOGGER
 from pymysql.constants import CLIENT
 from contextlib import suppress
+import importlib_resources
 import aiomysql
 
 try:
@@ -35,8 +36,9 @@ class MySQLStorage(BaseStorage):
         self.user: str = user
         self.password: str = password
         self.database = database
-        with open('NekoGram/storages/mysql/tables.json', 'r') as f:
-            self._table_structs: Dict[str, Dict[str, Dict[str, Optional[str]]]] = json.load(f)
+
+        file = importlib_resources.files('NekoGram.storages.mysql').joinpath('tables.json').read_text()
+        self._table_structs: Dict[str, Dict[str, Dict[str, Optional[str]]]] = json.loads(file)
         super().__init__(default_language=default_language)
 
     def __del__(self):
