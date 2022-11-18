@@ -187,6 +187,34 @@ class BuiltInFilters:
         obj = await self._to_message(obj)
         return obj.text and re.fullmatch(r'\+([0-9]+\s*)?([0-9]+)?[\s0-9\-]+[0-9]+', obj.text)
 
+    @staticmethod
+    async def is_forwarded(obj: Union[Message, CallbackQuery]) -> bool:
+        if not isinstance(obj, Message):
+            return False
+
+        return bool(obj.forward_from or obj.forward_from_chat)
+
+    @staticmethod
+    async def is_forwarded_from_group(obj: Union[Message, CallbackQuery]) -> bool:
+        if not isinstance(obj, Message):
+            return False
+
+        return obj.forward_from_chat and obj.forward_from_chat.type in ['group', 'supergroup']
+
+    @staticmethod
+    async def is_forwarded_from_channel(obj: Union[Message, CallbackQuery]) -> bool:
+        if not isinstance(obj, Message):
+            return False
+
+        return obj.forward_from_chat and obj.forward_from_chat.type == 'channel'
+
+    @staticmethod
+    async def is_forwarded_from_user(obj: Union[Message, CallbackQuery]) -> bool:
+        if not isinstance(obj, Message):
+            return False
+
+        return bool(obj.forward_from)
+
     @property
     def to_list(self):
         return [method.replace('is_', '') for method in dir(self) if not method.startswith(('_', 'to_list'))]

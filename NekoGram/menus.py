@@ -170,19 +170,20 @@ class Menu:
     def call_data(self) -> Optional[Any]:
         return self._call_data
 
-    async def add_pagination(self, offset: int, found: int, limit: int, shift_last: bool = True):
+    async def add_pagination(self, offset: int, found: int, limit: int, shift_last: int = 1):
         """
         Add a pagination
         :param offset: Item offset
         :param found: Number of found items found on this page
         :param limit: Max number of items that can be displayed at a time
-        :param shift_last: Whether to shift the last button
+        :param shift_last: Number of last buttons to shift
         """
         if self.markup:
             LOGGER.warning(f'Pagination was not applied for {self.name} since the menu is already built!')
-        last_button = self.raw_markup[-1]
-        if shift_last:
-            del self.raw_markup[-1]
+        last_buttons = list()
+        for x in range(-1, shift_last - 1):
+            last_buttons.append(self.raw_markup[x])
+            del self.raw_markup[x]
         if offset >= limit and found > limit:
             # Add previous and next buttons
             self.raw_markup.append([{'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'},
@@ -191,5 +192,8 @@ class Menu:
             self.raw_markup.append([{'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'}])
         elif found > limit:
             self.raw_markup.append([{'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}])
+
         if shift_last:
-            self.raw_markup.append(last_button)
+            last_buttons.reverse()
+            for x in last_buttons:
+                self.raw_markup.append(x)

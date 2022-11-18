@@ -11,7 +11,8 @@ async def default_start_handler(message: types.Message):
     if not await neko.storage.check_user_exists(user_id=message.from_user.id):
         lang = message.from_user.language_code
         await neko.storage.create_user(user_id=message.from_user.id,
-                                       language=lang if lang in neko.text_processor.texts.keys() else None)
+                                       language=lang if lang in neko.text_processor.texts.keys()
+                                       else neko.storage.default_language)
     else:  # Reset user data on start
         await neko.storage.set_user_data(user_id=message.from_user.id)
 
@@ -22,14 +23,15 @@ async def default_start_handler(message: types.Message):
     if neko.functions.get('start'):
         await neko.functions['start'](current_menu, message, neko)
         return
-    await current_menu.send_message()
-    with suppress(Exception):
-        await message.delete()
+    else:
+        await current_menu.send_message()
+        with suppress(Exception):
+            await message.delete()
 
 
 async def menu_message_handler(message: types.Message):
     neko: NekoGram.Neko = message.conf['neko']
-    if message.text == '/start':  # Start case
+    if message.text and message.text.startswith('/start'):  # Start case
         await default_start_handler(message)
         return
 
@@ -72,11 +74,14 @@ async def menu_message_handler(message: types.Message):
         await current_menu.send_message()
         return
     else:
-        await neko.storage.set_user_data(data={current_menu.name: message.to_python(),
-                                               'menu': current_menu.next_menu}, user_id=message.from_user.id)
+        user_data = await neko.storage.set_user_data(data={current_menu.name: message.to_python(),
+                                                           'menu': current_menu.next_menu},
+                                                     user_id=message.from_user.id)
 
     if neko.functions.get(current_menu.name):  # Execute a function if present
         await neko.functions[current_menu.name](current_menu, message, neko)
+        if user_data.get('menu') == current_menu.name:
+            await neko.storage.set_user_menu(user_id=message.from_user.id)
         return
 
     if neko.next_menu_handlers.get(current_menu.name):

@@ -5,5 +5,5 @@ CREATE TABLE `nekogram_users` (
   `last_message_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE `users`
+ALTER TABLE `nekogram_users`
   ADD PRIMARY KEY (`id`);

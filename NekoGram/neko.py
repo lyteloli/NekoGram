@@ -10,6 +10,7 @@ from datetime import datetime
 from .logger import LOGGER
 from copy import deepcopy
 from .menus import Menu
+import os
 
 try:
     import ujson as json
@@ -25,10 +26,14 @@ class Neko(BaseNeko):
     def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
                  menu_prefixes: Union[List[str]] = 'menu_', load_texts: bool = True,
-                 callback_parameters_delimiter: str = '#'):
+                 callback_parameters_delimiter: str = '#', attach_required_middleware: bool = True):
         super().__init__(storage=storage, token=token, bot=bot, dp=dp, text_processor=text_processor,
                          menu_prefixes=menu_prefixes, callback_parameters_delimiter=callback_parameters_delimiter)
-        self.dp.middleware.setup(HandlerInjector(self))  # Set up the handler injector middleware
+        if attach_required_middleware:
+            self.dp.middleware.setup(HandlerInjector(self))  # Set up the handler injector middleware
+        else:
+            LOGGER.warning('You canceled middleware attachment, this is a dangerous thing to do, make sure you perform '
+                           'same actions in your middleware, otherwise the app will crash')
 
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
         if load_texts:
@@ -46,7 +51,8 @@ class Neko(BaseNeko):
             lang = list(self.text_processor.texts.keys())[0]
         return text in self.text_processor.texts[lang].keys()
 
-    def register_formatter(self, callback: Callable[[Menu, types.User, BaseNeko], Any], name: Optional[str] = None):
+    def register_formatter(self, callback: Callable[[Menu, types.User, BaseNeko], Awaitable[Any]],
+                           name: Optional[str] = None):
         """
         Register a formatter
         :param callback: A formatter to call
@@ -64,14 +70,14 @@ class Neko(BaseNeko):
         :param name: Menu name
         """
 
-        def decorator(callback: Callable[[Menu, types.User, BaseNeko], Any]):
+        def decorator(callback: Callable[[Menu, types.User, BaseNeko], Awaitable[Any]]):
             self.register_formatter(callback=callback, name=name)
             return callback
 
         return decorator
 
-    def register_function(self, callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Any],
-                          name: Optional[str] = None):
+    def register_function(self, callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko],
+                                                   Awaitable[Any]], name: Optional[str] = None):
         """
         Register a function
         :param callback: A function to call
@@ -89,7 +95,7 @@ class Neko(BaseNeko):
         :param name: Menu name
         """
 
-        def decorator(callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Any]):
+        def decorator(callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Awaitable[Any]]):
             self.register_function(callback=callback, name=name)
             return callback
 
@@ -226,6 +232,8 @@ class Neko(BaseNeko):
         router.attach()
         self.functions.update(router.functions)
         self.format_functions.update(router.format_functions)
+        self.prev_menu_handlers.update(router.prev_menu_handlers)
+        self.next_menu_handlers.update(router.next_menu_handlers)
 
     async def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
                             startup: Callable[[BaseNeko], Awaitable[Any]], texts_path: Optional[str] = None,
@@ -269,16 +277,18 @@ class Neko(BaseNeko):
         self.attach_router(formatters_router)
         self.attach_router(functions_router)
 
-        if texts_path is None:
-            if formatters_router.name in self._builtin_widgets:
-                texts_path = f'NekoGram/widgets/{formatters_router.name}/translations'
-            else:
-                raise RuntimeError(f'Widget {formatters_router.name} is not builtin, '
-                                   f'therefore texts_path has to be provided')
         if db_table_structure_path and isinstance(self.storage, MySQLStorage):
             with open(db_table_structure_path, 'r') as f:
                 table_structure = json.load(f)
             await self.storage.add_tables(table_structure, required_by=formatters_router.name)
 
-        self.text_processor.add_texts(texts_path, is_widget=True)
+        if texts_path is None:
+            if formatters_router.name in self._builtin_widgets:
+                path = os.path.abspath(__file__).rstrip('neko.py')
+                delim = path[-1]
+                self.text_processor.add_texts(f'{path}widgets{delim}{formatters_router.name}{delim}translations',
+                                              is_widget=True)
+            else:
+                raise RuntimeError(f'Widget {formatters_router.name} is not builtin, '
+                                   f'therefore texts_path has to be provided')
         LOGGER.info(f'{formatters_router.name.capitalize()} widget attached successfully')
