@@ -1,5 +1,6 @@
 from typing import Callable, Optional, Union, Dict, Any, Awaitable
 from .base_neko import BaseNeko
+from .logger import LOGGER
 from aiogram import types
 from .menus import Menu
 
@@ -56,10 +57,28 @@ class NekoRouter:
 
         return decorator
 
-    def attach(self):
+    def mark_attached(self) -> bool:
+        """
+        Mark a router as attached
+        :return: True on success
+        """
         if self._was_attached:
-            raise RuntimeError('You are trying to attach the same router twice! *mad meowing*')
+            LOGGER.warning(f'You are trying to attach router named {self.name} more than once! *mad meowing*')
+            return False
         self._was_attached = True
+        return True
+
+    def attach(self, neko: BaseNeko):
+        """
+        Attach a router to a Neko
+        :param neko: A Neko object
+        """
+        if not self.mark_attached():
+            return
+        neko.functions.update(self.functions)
+        neko.format_functions.update(self.format_functions)
+        neko.prev_menu_handlers.update(self.prev_menu_handlers)
+        neko.next_menu_handlers.update(self.next_menu_handlers)
 
     def register_prev_menu_handler(self, callback: Callable[[Menu], Awaitable[str]], name: Optional[str] = None):
         """

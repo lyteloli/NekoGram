@@ -1,17 +1,13 @@
 from ...base_neko import BaseNeko
-from typing import Dict, List
+from typing import Optional
+import os
 try:
     import ujson as json
 except ImportError:
     import json
 
-replacements: Dict[str, str]
-languages: List[str]
 
-
-async def startup(neko: BaseNeko):
-    global replacements
-    global languages
-    with open('NekoGram/widgets/languages/replacements.json', 'r') as f:
+async def startup(_: BaseNeko) -> Optional[dict]:
+    with open(os.path.abspath(__file__).replace('util.py', 'replacements.json'), 'r') as f:
         replacements = json.load(f)
-    languages = list(neko.text_processor.texts.keys())
+    return dict(languages_replacements=replacements)

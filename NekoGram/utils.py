@@ -28,12 +28,19 @@ class HandlerInjector(BaseMiddleware):
 
     async def on_process_callback_query(self, call: types.CallbackQuery, _: dict):
         """
-        This handler is called when dispatcher receives a call
+        This handler is called when dispatcher receives a callback query
         """
         # Get current handler
         call.conf['neko'] = self.neko
         call.message.conf['neko'] = self.neko
         call.message.from_user = call.from_user
+
+    async def on_process_inline_query(self, query: types.InlineQuery, _: dict):
+        """
+        This handler is called when dispatcher receives an inline query
+        """
+        # Get current handler
+        query.conf['neko'] = self.neko
 
 
 async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bool]:

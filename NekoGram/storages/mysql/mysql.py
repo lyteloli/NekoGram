@@ -1,9 +1,9 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
 from pymysql import err as mysql_errors
 from ..base_storage import BaseStorage
-from ...logger import LOGGER
 from pymysql.constants import CLIENT
 from contextlib import suppress
+from ...logger import LOGGER
 import aiomysql
 import os
 

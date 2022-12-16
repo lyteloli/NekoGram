@@ -1,6 +1,8 @@
 # NekoGram
 ###### Creating bots has never been simpler.
 ##### Join our [Telegram chat @NekoGramDev](https://t.me/NekoGramDev)
+##### [YouTube tutorial (RU)](https://youtu.be/68i1blPYGYU)
+##### [Example project](https://github.com/lyteloli/NekoGramBMICalculator)
 ![](docs/nekogram-white.png)
 
 ## Overview

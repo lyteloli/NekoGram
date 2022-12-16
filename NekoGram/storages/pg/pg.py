@@ -1,4 +1,5 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
+from ...logger import LOGGER
 
 try:
     from psycopg2.extras import DictCursor
@@ -28,6 +29,7 @@ class PGStorage(BaseStorage):
         :param password: Database password
         """
 
+        LOGGER.warning('PGStorage is not tested and therefore is not recommended to be used in production!')
         self.engine = None
         self.host: str = host
         self.port: int = port

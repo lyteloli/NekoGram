@@ -1,9 +1,9 @@
+from typing import Optional, Dict, List, Union, Any, Callable, Awaitable
 from aiogram.dispatcher.filters.builtin import ChatTypeFilter
 from .text_processors import BaseProcessor, JSONProcessor
 from .filters import StartsWith, HasMenu, BuiltInFilters
 from aiogram import Bot, Dispatcher, executor, types
 from .storages import BaseStorage, MemoryStorage
-from typing import Optional, Dict, List, Union
 from aiogram.dispatcher.filters import Filter
 from abc import ABC, abstractmethod
 from .logger import LOGGER
@@ -62,6 +62,13 @@ class BaseNeko(ABC):
         for f in builtin_filters.to_list:
             self.filters[f] = getattr(builtin_filters, f'is_{f}')
 
+        self.functions: Dict[str, Callable[[Any, Union[types.Message, types.CallbackQuery, types.InlineQuery],
+                                            BaseNeko], Awaitable[Any]]] = dict()
+        self.format_functions: Dict[str, Callable[[Any, types.User, BaseNeko], Awaitable[Any]]] = dict()
+        self.prev_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()
+        self.next_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()
+        self._markup_overriders: Dict[str, Dict[str, Callable[[Any], Awaitable[List[List[Dict[str, str]]]]]]] = dict()
+
         print(r'''
    _  __    __        _____             
   / |/ /__ / /_____  / ___/______ ___ _ 
@@ -91,6 +98,14 @@ class BaseNeko(ABC):
 
     def remove_filter(self, name: str):
         self.filters.pop(name)
+
+    @abstractmethod
+    def get_widget_data(self, key: str) -> Optional[Any]:
+        pass
+
+    @abstractmethod
+    def get_full_widget_data(self) -> Dict[str, Any]:
+        pass
 
     @abstractmethod
     async def check_text_exists(self, text: str, lang: Optional[str] = None) -> bool:
@@ -140,6 +155,7 @@ class BaseNeko(ABC):
         pass
 
     @abstractmethod
-    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery], user_id: Optional[int] = None,
-                         callback_data: Optional[Union[str, int]] = None, auto_build: bool = True):
+    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
+                         user_id: Optional[int] = None, callback_data: Optional[Union[str, int]] = None,
+                         auto_build: bool = True):
         pass

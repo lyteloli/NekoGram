@@ -38,13 +38,14 @@ class Neko(BaseNeko):
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
         if load_texts:
             self.text_processor.add_texts()
-        self.functions: Dict[str, Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko],
-                                           Awaitable[Any]]] = dict()
-        self.format_functions: Dict[str, Callable[[Menu, types.User, BaseNeko], Awaitable[Any]]] = dict()
-        self.prev_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
-        self.next_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
-        self._markup_overriders: Dict[str, Dict[str, Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]]] = dict()
         self.widgets: List[str] = list()
+        self.__widget_data: Dict[str, Any] = dict()
+
+    def get_widget_data(self, key: str) -> Optional[Any]:
+        return self.__widget_data.get(key)
+
+    def get_full_widget_data(self) -> Dict[str, Any]:
+        return self.__widget_data.copy()
 
     async def check_text_exists(self, text: str, lang: Optional[str] = None) -> bool:
         if lang is None:
@@ -168,7 +169,7 @@ class Neko(BaseNeko):
 
         return decorator
 
-    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery],
+    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
                          user_id: Optional[int] = None,
                          callback_data: Optional[Union[str, int]] = None,
                          auto_build: bool = True) -> Optional[Menu]:
@@ -216,7 +217,9 @@ class Neko(BaseNeko):
 
         format_func = self.format_functions.get(name)
         if format_func:
-            await format_func(menu, obj.from_user, self)
+            r = await format_func(menu, obj.from_user, self)
+            if isinstance(r, Menu):  # Replace the menu if required
+                menu = r
             if menu.markup is None and menu.raw_markup:
                 await menu.build()
         elif auto_build:
@@ -229,14 +232,16 @@ class Neko(BaseNeko):
         Attach a NekoRouter to Neko
         :param router: A NekoRouter to attach
         """
-        router.attach()
+        if not router.mark_attached():
+            return
         self.functions.update(router.functions)
         self.format_functions.update(router.format_functions)
         self.prev_menu_handlers.update(router.prev_menu_handlers)
         self.next_menu_handlers.update(router.next_menu_handlers)
 
     async def attach_widget(self, formatters_router: NekoRouter, functions_router: NekoRouter,
-                            startup: Callable[[BaseNeko], Awaitable[Any]], texts_path: Optional[str] = None,
+                            startup: Callable[[BaseNeko], Awaitable[Optional[Dict[str, Any]]]],
+                            texts_path: Optional[str] = None,
                             db_table_structure_path: Optional[str] = None,
                             formatters_to_ignore: Optional[List[str]] = None,
                             functions_to_ignore: Optional[List[str]] = None):
@@ -244,7 +249,7 @@ class Neko(BaseNeko):
         Attach a widget to Neko
         :param formatters_router: A NekoRouter object responsible for formatters
         :param functions_router: A NekoRouter object responsible for functions
-        :param startup: A startup function to call
+        :param startup: A startup function that returns data required for a widget to work to call
         :param texts_path: A path to translation files
         :param db_table_structure_path: A path to table structure file
         :param formatters_to_ignore: A list of formatter names to ignore
@@ -261,7 +266,17 @@ class Neko(BaseNeko):
             LOGGER.warning(f'Widget {formatters_router.name} is being attached again, ignored. *ultrasonic meowing*')
             return
 
-        await startup(self)
+        raw_widget_data = await startup(self)
+        if raw_widget_data:
+            widget_data: Dict[str, Any] = dict()
+            for key, value in raw_widget_data.items():
+                if not key.startswith(f'{formatters_router.name}_'):
+                    LOGGER.warning(f'Widget {formatters_router.name} is not allowed to access `{key}` in widget data, '
+                                   f'all keys for this widget have to start with `{formatters_router.name}_`. '
+                                   f'This key was ignored. *visible disappointment*')
+                else:
+                    widget_data[key] = value
+            self.__widget_data.update(widget_data)
         self.widgets.append(formatters_router.name)
 
         if formatters_to_ignore:  # Ignore formatters

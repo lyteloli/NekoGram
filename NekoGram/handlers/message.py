@@ -88,7 +88,10 @@ async def menu_message_handler(message: types.Message):
         current_menu.next_menu = await neko.next_menu_handlers[current_menu.name](current_menu)
 
     if not current_menu.next_menu:  # Next step is undefined
+        if current_menu.name == 'start':
+            return
         LOGGER.warning(f'Unhandled user input for {current_menu.name}. *confused meow*')
+        await neko.storage.set_user_menu(menu=current_menu.name, user_id=message.from_user.id)
     next_menu = await neko.build_menu(name=current_menu.next_menu or 'start', obj=message)
     if next_menu is None:
         return

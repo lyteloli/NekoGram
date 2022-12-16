@@ -48,6 +48,10 @@ class JSONProcessor(BaseProcessor):
                             if lang is None:
                                 raise ValueError(f'The supplied translation file does not contain a language '
                                                  f'definition ("lang" field)')
+
+                            if is_widget and lang not in self.texts.keys():  # Ignore extra languages for widgets
+                                continue
+
                             processed_texts[lang] = processed_json
                 self._add_text(text_data=processed_texts)
                 if not is_widget:

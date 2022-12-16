@@ -6,13 +6,13 @@ from .logger import LOGGER
 
 
 class Menu:
-    _default_keyboard_values: Dict[str, str] = {'callback_data': 'call_data', 'switch_inline_query': 'query',
-                                                'switch_inline_query_current_chat': 'cc_query',
-                                                'text': 'text', 'url': 'url'}
-    _inline_markup_identifiers: List[str] = ['call_data', 'callback_data', 'query', 'switch_inline_query', 'cc_query',
-                                             'switch_inline_query_current_chat', 'url']
+    __default_keyboard_values: Dict[str, str] = {'callback_data': 'call_data', 'switch_inline_query': 'query',
+                                                 'switch_inline_query_current_chat': 'cc_query',
+                                                 'text': 'text', 'url': 'url'}
+    __inline_markup_identifiers: List[str] = ['call_data', 'callback_data', 'query', 'switch_inline_query', 'cc_query',
+                                              'switch_inline_query_current_chat', 'url']
 
-    def __init__(self, name: str, obj: Union[types.Message, types.InlineQuery],
+    def __init__(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
                  markup: Optional[List[List[Dict[str, str]]]] = None, markup_row_width: Optional[int] = None,
                  text: Optional[str] = None, no_preview: Optional[bool] = None, parse_mode: Optional[str] = None,
                  silent: Optional[bool] = None, validation_error: Optional[str] = None,
@@ -20,8 +20,8 @@ class Menu:
                  markup_type: Optional[str] = None, prev_menu: Optional[str] = None, next_menu: Optional[str] = None,
                  filters: Optional[List[str]] = None, callback_data: Optional[Union[str, int]] = None):
         self.name: str = name
-        self.obj: Optional[Union[types.Message, types.CallbackQuery]] = obj
-        self._neko: BaseNeko = obj.conf['neko']
+        self.obj: Optional[Union[types.Message, types.CallbackQuery, types.InlineQuery]] = obj
+        self.neko: BaseNeko = obj.conf['neko']
         self.markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None
 
         self.text: Optional[str] = text
@@ -32,7 +32,7 @@ class Menu:
         self.markup_row_width: Optional[int] = markup_row_width
         self.validation_error: str = validation_error or 'ValidationError'
         self.extras: Dict[str, Any] = extras or dict()
-        self.keyboard_values_to_format = keyboard_values_to_format or list(self._default_keyboard_values.keys())
+        self.keyboard_values_to_format = keyboard_values_to_format or list(self.__default_keyboard_values.keys())
         self.markup_type: Optional[str] = markup_type
         self.prev_menu: Optional[str] = prev_menu
         self.next_menu: Optional[str] = next_menu
@@ -66,24 +66,43 @@ class Menu:
         return result
 
     async def send_message(self, user_id: Optional[int] = None) -> types.Message:
+        """
+        Sends the menu as a message to a user
+        :param user_id: Telegram user ID
+        :return: Sent message
+        """
         if user_id is None:
             user_id = self.obj.from_user.id
         msg = await self.obj.bot.send_message(chat_id=user_id, text=self.text,
                                               parse_mode=self.parse_mode, disable_web_page_preview=self.no_preview,
                                               disable_notification=self.silent, reply_markup=self.markup)
-        last_message_id = await self._neko.storage.get_last_message_id(user_id=user_id)
-        await self._neko.storage.set_last_message_id(user_id=user_id, message_id=msg.message_id)
+        last_message_id = await self.neko.storage.get_last_message_id(user_id=user_id)
+        await self.neko.storage.set_last_message_id(user_id=user_id, message_id=msg.message_id)
         with suppress(Exception):
             await self.obj.bot.delete_message(chat_id=user_id, message_id=last_message_id)
         return msg
 
     async def edit_text(self) -> types.Message:
+        """
+        Edits message text with menu properties
+        :return: Edited message
+        """
         obj = self.obj if isinstance(self.obj, types.Message) else self.obj.message
         msg = await obj.edit_text(text=self.text, parse_mode=self.parse_mode, reply_markup=self.markup,
                                   disable_web_page_preview=self.no_preview)
         if isinstance(self.obj, types.CallbackQuery):
-            await self._neko.storage.set_last_message_id(user_id=self.obj.from_user.id, message_id=msg.message_id)
+            await self.neko.storage.set_last_message_id(user_id=self.obj.from_user.id, message_id=msg.message_id)
         return msg
+
+    def build_inline_query_result_args(self, **kwargs) -> Dict[str, Any]:
+        """
+        Builds kwargs for InlineQueryResult with menu and custom properties
+        :param kwargs: Custom properties for InlineQueryResult
+        :return: Kwargs to initialize an InlineQueryResult object
+        """
+        r = dict(caption=self.text, parse_mode=self.parse_mode, reply_markup=self.markup)
+        r.update(kwargs)
+        return r
 
     async def _resolve_markup_type(self) -> Type[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]]:
         """
@@ -97,7 +116,7 @@ class Menu:
 
         for row in self.raw_markup:  # Guess the type otherwise
             for button in row:
-                if any([i in button for i in self._inline_markup_identifiers]):
+                if any([i in button for i in self.__inline_markup_identifiers]):
                     return types.InlineKeyboardMarkup
         return types.ReplyKeyboardMarkup
 
