@@ -23,7 +23,7 @@ class MemoryStorage(BaseStorage):
         return lang
 
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
-                            replace: bool = False) -> Dict[str, Any]:
+                            replace: bool = False, bot_token: Optional[str] = None) -> Dict[str, Any]:
         if data is None:
             data = dict()
             replace = True
@@ -41,16 +41,16 @@ class MemoryStorage(BaseStorage):
         LOGGER.info(f'Set user data for {user_id}: {user_data}')
         return user_data
 
-    async def get_user_data(self, user_id: int) -> Dict[str, Any]:
+    async def get_user_data(self, user_id: int, bot_token: Optional[str] = None) -> Dict[str, Any]:
         data = self.users.get(str(user_id), {}).get('data', {})
         LOGGER.info(f'Fetched user data for {user_id}: {data}')
         return data
 
-    async def set_user_menu(self, user_id: int, menu: Optional[str] = None):
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, bot_token: Optional[str] = None):
         await self.set_user_data(user_id=user_id, data={'menu': menu})
         return menu
 
-    async def get_user_menu(self, user_id: int) -> Optional[str]:
+    async def get_user_menu(self, user_id: int, bot_token: Optional[str] = None) -> Optional[str]:
         return (await self.get_user_data(user_id=user_id)).get('menu')
 
     async def check_user_exists(self, user_id: int) -> bool:

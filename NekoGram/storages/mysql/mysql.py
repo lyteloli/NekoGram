@@ -120,7 +120,7 @@ class MySQLStorage(BaseStorage):
                     await cursor.execute(query, args)
                     await conn.commit()
                 except mysql_errors.Error as e:
-                    print(e)
+                    LOGGER.exception(e)
                     await conn.rollback()
 
                 if 'insert into' in query.lower():
@@ -199,25 +199,25 @@ class MySQLStorage(BaseStorage):
         """
         lang = await self.get_cached_user_language(user_id=user_id)
         if lang is None:
-            lang = (await self.get('SELECT lang FROM nekogram_users WHERE id=%s',
+            lang = (await self.get('SELECT lang FROM nekogram_users WHERE id = %s',
                                    user_id)).get('lang', self.default_language)
         await super().set_user_language(user_id=user_id, language=lang)
         return lang
 
-    async def get_user_data(self, user_id: int) -> Union[Dict[str, Any], bool]:
+    async def get_user_data(self, user_id: int, **kwargs) -> Union[Dict[str, Any], bool]:
         """
         Get user data
         :param user_id: Telegram ID of the user
         :return: Decoded JSON user data
         """
         try:
-            return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id=%s',
-                                              user_id)).get('data', '{}'))
+            return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s',
+                                              user_id))['data'])
         except TypeError:
             return False
 
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
-                            replace: bool = False) -> Dict[str, Any]:
+                            replace: bool = False, **kwargs) -> Dict[str, Any]:
         if data is None:
             data = dict()
             replace = True
@@ -231,11 +231,11 @@ class MySQLStorage(BaseStorage):
         await self.apply('UPDATE nekogram_users SET data = %s WHERE id = %s', (json.dumps(user_data), user_id))
         return user_data
 
-    async def set_user_menu(self, user_id: int, menu: Optional[str] = None):
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, **kwargs):
         await self.set_user_data(user_id=user_id, data={'menu': menu})
         return menu
 
-    async def get_user_menu(self, user_id: int) -> Optional[str]:
+    async def get_user_menu(self, user_id: int, **kwargs) -> Optional[str]:
         return (await self.get_user_data(user_id=user_id)).get('menu')
 
     async def check_user_exists(self, user_id: int) -> bool:
@@ -253,3 +253,44 @@ class MySQLStorage(BaseStorage):
             language = self.default_language
 
         await self.apply('INSERT INTO nekogram_users (id, lang) VALUES (%s, %s)', (user_id, language))
+
+
+class KittyMySQLStorage(MySQLStorage):
+    def __init__(self, database: str, host: str = 'localhost', port: int = 3306, user: str = 'root',
+                 password: Optional[str] = None, default_language: str = 'en'):
+        MySQLStorage.__init__(self, database=database, host=host, port=port, user=user, password=password,
+                              default_language=default_language)
+
+    async def get_user_data(self, user_id: int, bot_token: Optional[str] = None) -> Union[Dict[str, Any], bool]:
+        """
+        Get user data
+        :param user_id: Telegram ID of the user
+        :param bot_token: Token of the current bot
+        :return: Decoded JSON user data
+        """
+        try:
+            return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s',
+                                              user_id))['data']).get(bot_token, dict())
+        except TypeError:
+            return False
+
+    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
+                            replace: bool = False, bot_token: Optional[str] = None) -> Dict[str, Any]:
+        raw_user_data = json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data'])
+        if data is None:
+            raw_user_data.pop(bot_token, None)
+        else:
+            if bot_token not in raw_user_data.keys():
+                raw_user_data[bot_token] = data
+            else:
+                raw_user_data[bot_token].update(data)
+
+        await self.apply('UPDATE nekogram_users SET data = %s WHERE id = %s', (json.dumps(raw_user_data), user_id))
+        return raw_user_data.get(bot_token, dict())
+
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, bot_token: Optional[str] = None):
+        await self.set_user_data(user_id=user_id, data={'menu': menu}, bot_token=bot_token)
+        return menu
+
+    async def get_user_menu(self, user_id: int, bot_token: Optional[str] = None) -> Optional[str]:
+        return (await self.get_user_data(user_id=user_id, bot_token=bot_token)).get('menu')

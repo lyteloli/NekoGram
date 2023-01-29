@@ -144,7 +144,7 @@ class PGStorage(BaseStorage):
         await super().set_user_language(user_id=user_id, language=lang)
         return lang
 
-    async def get_user_data(self, user_id: int) -> Union[Dict[str, Any], bool]:
+    async def get_user_data(self, user_id: int, **kwargs) -> Union[Dict[str, Any], bool]:
         """
         Get user data
         :param user_id: Telegram ID of the user
@@ -156,7 +156,7 @@ class PGStorage(BaseStorage):
             return False
 
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
-                            replace: bool = False) -> Dict[str, Any]:
+                            replace: bool = False, **kwargs) -> Dict[str, Any]:
         if data is None:
             data = dict()
             replace = True
@@ -170,11 +170,11 @@ class PGStorage(BaseStorage):
         await self.apply('UPDATE users SET data = %s WHERE id = %s', (json.dumps(user_data), user_id))
         return user_data
 
-    async def set_user_menu(self, user_id: int, menu: Optional[str] = None):
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, **kwargs):
         await self.set_user_data(user_id=user_id, data={'menu': menu})
         return menu
 
-    async def get_user_menu(self, user_id: int) -> Optional[str]:
+    async def get_user_menu(self, user_id: int, **kwargs) -> Optional[str]:
         return (await self.get_user_data(user_id=user_id)).get('menu')
 
     async def check_user_exists(self, user_id: int) -> bool:

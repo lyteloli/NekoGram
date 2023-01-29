@@ -27,19 +27,19 @@ class BaseStorage(ABC):
 
     @abstractmethod
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
-                            replace: bool = False) -> Dict[str, Any]:
+                            replace: bool = False, bot_token: Optional[str] = None) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_user_data(self, user_id: int) -> Dict[str, Any]:
+    async def get_user_data(self, user_id: int, bot_token: Optional[str] = None) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def set_user_menu(self, user_id: int, menu: Optional[str] = None):
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, bot_token: Optional[str] = None):
         pass
 
     @abstractmethod
-    async def get_user_menu(self, user_id: int) -> Optional[str]:
+    async def get_user_menu(self, user_id: int, bot_token: Optional[str] = None) -> Optional[str]:
         pass
 
     @abstractmethod

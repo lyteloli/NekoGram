@@ -88,6 +88,28 @@ class BuiltInFilters:
         except ValueError:
             return False
 
+    @staticmethod
+    async def is_int_non_neg(obj: Union[Message, CallbackQuery]) -> bool:
+        """
+        Checks if message text can be converted to a non-negative integer
+        :return: True if so
+        """
+        try:
+            return int(obj.text) >= 0
+        except ValueError:
+            return False
+
+    @staticmethod
+    async def is_int_non_pos(obj: Union[Message, CallbackQuery]) -> bool:
+        """
+        Checks if message text can be converted to a non-positive integer
+        :return: True if so
+        """
+        try:
+            return int(obj.text) <= 0
+        except ValueError:
+            return False
+
     async def is_float(self, obj: Union[Message, CallbackQuery]) -> bool:
         """
         Checks if message text can be converted to a float

@@ -18,7 +18,8 @@ class Menu:
                  silent: Optional[bool] = None, validation_error: Optional[str] = None,
                  extras: Optional[Dict[str, Any]] = None, keyboard_values_to_format: Optional[List[str]] = None,
                  markup_type: Optional[str] = None, prev_menu: Optional[str] = None, next_menu: Optional[str] = None,
-                 filters: Optional[List[str]] = None, callback_data: Optional[Union[str, int]] = None):
+                 filters: Optional[List[str]] = None, callback_data: Optional[Union[str, int]] = None,
+                 bot_token: Optional[str] = None, intermediate_menu: Optional[str] = None):
         self.name: str = name
         self.obj: Optional[Union[types.Message, types.CallbackQuery, types.InlineQuery]] = obj
         self.neko: BaseNeko = obj.conf['neko']
@@ -38,6 +39,8 @@ class Menu:
         self.next_menu: Optional[str] = next_menu
         self.filters: Optional[List[str]] = filters
         self._call_data: Optional[Union[str, int]] = callback_data
+        self.bot_token: Optional[str] = bot_token
+        self.intermediate_menu: Optional[str] = intermediate_menu
         self._break_execution: bool = False
 
     def break_execution(self):

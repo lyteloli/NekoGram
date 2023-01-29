@@ -1,4 +1,5 @@
 from aiogram.dispatcher.middlewares import BaseMiddleware
+from contextlib import suppress
 from .base_neko import BaseNeko
 from aiogram import types
 from typing import Union
@@ -25,6 +26,8 @@ class HandlerInjector(BaseMiddleware):
         """
         # Get current handler
         message.conf['neko'] = self.neko
+        with suppress(Exception):
+            message.conf['request_token'] = message.conf['parent']().conf['request_token']
 
     async def on_process_callback_query(self, call: types.CallbackQuery, _: dict):
         """
@@ -34,6 +37,8 @@ class HandlerInjector(BaseMiddleware):
         call.conf['neko'] = self.neko
         call.message.conf['neko'] = self.neko
         call.message.from_user = call.from_user
+        with suppress(Exception):
+            call.conf['request_token'] = call.conf['parent']().conf['request_token']
 
     async def on_process_inline_query(self, query: types.InlineQuery, _: dict):
         """
@@ -41,6 +46,8 @@ class HandlerInjector(BaseMiddleware):
         """
         # Get current handler
         query.conf['neko'] = self.neko
+        with suppress(Exception):
+            query.conf['request_token'] = query.conf['parent']().conf['request_token']
 
 
 async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bool]:

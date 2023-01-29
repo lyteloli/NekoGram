@@ -1,1 +1,1 @@
-from .mysql import MySQLStorage
+from .mysql import MySQLStorage, KittyMySQLStorage

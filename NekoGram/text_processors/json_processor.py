@@ -26,15 +26,13 @@ class JSONProcessor(BaseProcessor):
             else:
                 self.texts[lang].update(text)
 
-    def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations',
-                  is_widget: bool = False) -> Dict[str, Dict[str, Any]]:
+    def add_texts(self, texts: Union[Dict[str, Any], TextIO, str] = 'translations', is_widget: bool = False):
         """
         Assigns a required piece of texts to use later
         :param texts: Dictionary or JSON containing texts, path to a file or path to a directory containing texts
         :param is_widget: Set true if text path is for a widget
         :return: Processed texts
         """
-        processed_texts: Dict[str, Dict[str, Any]] = dict()
         processed_json: Optional[Dict[str, Any]] = None
 
         if isinstance(texts, str):
@@ -52,11 +50,10 @@ class JSONProcessor(BaseProcessor):
                             if is_widget and lang not in self.texts.keys():  # Ignore extra languages for widgets
                                 continue
 
-                            processed_texts[lang] = processed_json
-                self._add_text(text_data=processed_texts)
+                            self._add_text(text_data={lang: processed_json})
                 if not is_widget:
                     self._verify()
-                return processed_texts
+                return
 
             elif not isfile(texts):  # String JSON
                 processed_json = json.loads(texts)
@@ -72,12 +69,11 @@ class JSONProcessor(BaseProcessor):
             lang: Optional[str] = processed_json.get('lang')
             if lang is None:
                 raise ValueError(f'The supplied translation file does not contain a language definition ("lang" field)')
-            processed_texts[lang] = processed_json
 
-        self._add_text(text_data=processed_texts)
+            self._add_text(text_data={lang: processed_json})
         if not is_widget:
             self._verify()
-        return processed_texts
+        return
 
     @property
     def processor_type(self) -> str:

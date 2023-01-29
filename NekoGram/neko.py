@@ -1,4 +1,5 @@
 from typing import Dict, List, Union, Optional, Any, Callable, Awaitable
+from .webhook import KittyWebhook, KittyExecutor
 from .text_processors import BaseProcessor
 from aiogram import Dispatcher, Bot, types
 from .storages.mysql import MySQLStorage
@@ -10,6 +11,7 @@ from datetime import datetime
 from .logger import LOGGER
 from copy import deepcopy
 from .menus import Menu
+import inspect
 import os
 
 try:
@@ -22,24 +24,34 @@ class Neko(BaseNeko):
     _registration_warned: bool = False
     _builtin_widgets: List[str] = ['broadcast', 'languages']
     _widgets_warned: bool = False
+    __MENU_ARGS: List[str] = list(inspect.signature(Menu.__init__).parameters.keys())
 
     def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
                  menu_prefixes: Union[List[str]] = 'menu_', load_texts: bool = True,
-                 callback_parameters_delimiter: str = '#', attach_required_middleware: bool = True):
+                 callback_parameters_delimiter: str = '#', attach_required_middleware: bool = True,
+                 webhook_host: str = 'localhost', webhook_port: Optional[int] = None,
+                 webhook_path: Optional[str] = None, webhook_url: Optional[str] = None):
         super().__init__(storage=storage, token=token, bot=bot, dp=dp, text_processor=text_processor,
                          menu_prefixes=menu_prefixes, callback_parameters_delimiter=callback_parameters_delimiter)
         if attach_required_middleware:
             self.dp.middleware.setup(HandlerInjector(self))  # Set up the handler injector middleware
         else:
-            LOGGER.warning('You canceled middleware attachment, this is a dangerous thing to do, make sure you perform '
-                           'same actions in your middleware, otherwise the app will crash')
+            LOGGER.warning('You canceled embedded middleware attachment, this is a dangerous thing to do, make sure '
+                           'you perform same actions in your middleware, otherwise the app will crash or stay idle.')
 
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
         if load_texts:
             self.text_processor.add_texts()
         self.widgets: List[str] = list()
         self.__widget_data: Dict[str, Any] = dict()
+        self.executor: KittyExecutor = KittyExecutor(neko=self)
+        self.__webhook_host: str = webhook_host
+        self.__webhook_port: Optional[int] = webhook_port
+        self.__webhook_path: Optional[str] = webhook_path
+        self.__webhook_url: Optional[str] = webhook_url
+        if webhook_path and '{token}' not in webhook_path:
+            raise ValueError('{token} placeholder has to be present in webhook_path.')
 
     def get_widget_data(self, key: str) -> Optional[Any]:
         return self.__widget_data.get(key)
@@ -60,8 +72,8 @@ class Neko(BaseNeko):
         :param name: Menu name
         """
         if not self._registration_warned:
-            LOGGER.warning('It is not recommended to register formatters within a Neko class, '
-                           'consider using a NekoRouter')
+            LOGGER.warning('It is not recommended to register formatters and functions within a Neko class, '
+                           'consider using a NekoRouter.')
             self._registration_warned = True
         self.format_functions[name or callback.__name__] = callback
 
@@ -85,8 +97,8 @@ class Neko(BaseNeko):
         :param name: Menu name
         """
         if not self._registration_warned:
-            LOGGER.warning('It is not recommended to register functions within a Neko class, '
-                           'consider using a NekoRouter')
+            LOGGER.warning('It is not recommended to register formatters and functions within a Neko class, '
+                           'consider using a NekoRouter.')
             self._registration_warned = True
         self.functions[name or callback.__name__] = callback
 
@@ -186,7 +198,7 @@ class Neko(BaseNeko):
             name = 'start'
 
         lang = await self.storage.get_user_language(user_id=user_id or obj.from_user.id)
-        text = deepcopy(self.text_processor.texts[lang].get(name))
+        text: Dict[str, Any] = deepcopy(self.text_processor.texts[lang].get(name))
         if not obj:
             raise RuntimeError(f'Neither Message nor CallbackQuery was provided during menu building for {name}! '
                                f'*brain explosion sounds accompanied by intense meowing*')
@@ -205,12 +217,15 @@ class Neko(BaseNeko):
                 raise RuntimeError(f'There is no menu called {name}! *facePAWm*')
         if text.get('text') is None and text:
             LOGGER.warning(f'No text provided for {name}. *suspicious stare*')
-        menu = Menu(name=name, obj=obj, markup=text.get('markup'), markup_row_width=text.get('markup_row_width'),
-                    text=text.get('text'), no_preview=text.get('no_preview'), parse_mode=text.get('parse_mode'),
-                    silent=text.get('silent'), validation_error=text.get('validation_error'),
-                    extras=text.get('extras'), keyboard_values_to_format=text.get('keyboard_values_to_format'),
-                    markup_type=text.get('markup_type'), prev_menu=text.get('prev_menu'),
-                    next_menu=text.get('next_menu'), filters=text.get('filters'), callback_data=callback_data)
+
+        text.update(dict(name=name, obj=obj, callback_data=callback_data, bot_token=obj.conf.get('request_token')))
+        args_to_pass: Dict[str, Any] = dict()
+        for key, value in text.items():
+            if key in self.__MENU_ARGS:
+                args_to_pass[key] = value
+            else:
+                LOGGER.warning(f'Field {key} in {name} is extra, it was ignored during Menu initialization.')
+        menu = Menu(**args_to_pass)
 
         if self._markup_overriders.get(name, dict()).get(lang):
             menu.raw_markup = await self._markup_overriders[name][lang](menu)
@@ -273,7 +288,7 @@ class Neko(BaseNeko):
                 if not key.startswith(f'{formatters_router.name}_'):
                     LOGGER.warning(f'Widget {formatters_router.name} is not allowed to access `{key}` in widget data, '
                                    f'all keys for this widget have to start with `{formatters_router.name}_`. '
-                                   f'This key was ignored. *visible disappointment*')
+                                   'This key was ignored. *visible disappointment*')
                 else:
                     widget_data[key] = value
             self.__widget_data.update(widget_data)
@@ -305,5 +320,30 @@ class Neko(BaseNeko):
                                               is_widget=True)
             else:
                 raise RuntimeError(f'Widget {formatters_router.name} is not builtin, '
-                                   f'therefore texts_path has to be provided')
+                                   'therefore texts_path has to be provided')
         LOGGER.info(f'{formatters_router.name.capitalize()} widget attached successfully')
+
+    def start_webhook(self, loop=None):
+        """
+        Start webhook
+        :param loop: Abstract asyncio loop
+        """
+        if self.__webhook_path is None or self.__webhook_port is None:
+            raise RuntimeError('You must set webhook_host, webhook_host and webhook_port parameters for a Neko class '
+                               'during initialization to run a webhook')
+        self.executor.start_webhook(webhook_path=self.__webhook_path, host=self.__webhook_host,
+                                    port=self.__webhook_port, request_handler=KittyWebhook, loop=loop)
+
+    async def set_webhook(self, bot_token: str, validate_token: bool = True,
+                          drop_pending_updates: Optional[bool] = None):
+        """
+        Set a webhook for a child bot
+        :param bot_token: Child bot token
+        :param validate_token: Whether to validate a token
+        :param drop_pending_updates: Whether to skip unprocessed updates for a child bot
+        """
+        if self.__webhook_url is None or '{token}' not in self.__webhook_url:
+            raise RuntimeError('webhook_url must be specified and contain {token} placeholder to set a webhook.')
+        with self.bot.with_token(bot_token=bot_token, validate_token=validate_token):
+            await self.bot.set_webhook(url=self.__webhook_url.format(token=bot_token),
+                                       drop_pending_updates=drop_pending_updates)
