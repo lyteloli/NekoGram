@@ -6,8 +6,23 @@
 ![](docs/nekogram-white.png)
 
 ## Overview
-The idea of NekoGram is to let developers write code as little as possible but still be able to implement complex 
-solutions.\
+NekoGram is a JSON-processing layer framework over AIOGram, that makes bot development easier, faster and makes the 
+code a lot more readable.
+
+Its main features include:
+- Multistep menus.
+- Multibot support.
+- Great localization support.
+- Reducing the amount of code you need to create a bot.
+- Widgets.
+- Proper MySQL storage.
+- Useful utils for various things, such as media upload that pure AIOGram lacks.
+- Routers. You no longer need to link a bunch of handlers from various files in your project.
+- Intermediate menus. These will be shown to users when you need some time to process inputs.
+- Proper input filtration, without having to write a ton of handlers to notify users about wrong input.
+- Freedom. You can combine any AIOGram feature with NekoGram if you need to do so.
+- Cool exception messages :3
+
 NekoGram is based on [AIOGram](https://github.com/aiogram/aiogram) which means you can combine all its features 
 with NekoGram.
 
@@ -16,10 +31,15 @@ with NekoGram.
 > releases might be incompatible with older ones.
 
 #### Current version: 2.0
+> The latest version was not yet published to PyPi so if you want to use webhooks, please clone this repository.
 
 ## Installation
 ```
 pip install NekoGram
+```
+OR
+```
+git clone https://github.com/lyteloli/NekoGram
 ```
 Speedups:
 ```
@@ -250,7 +270,8 @@ This storage is useful for tiny projects, testing and playing around with Neko.
 The most advanced and recommended storage of NekoGram. It checks database structure every time your app launches, 
 if you do not have a database, it will create it for you. It is recommended to use Widgets only with this storage.
 ##### PGStorage
-A storage for PostgreSQL databases. Has basic features of MySQLStorage but is not tested, may not work.
+A storage for PostgreSQL databases. Has basic features of MySQLStorage.
+> This storage may not work properly, it is not recommended using it.
 
 #### Menus in depth
 Here are all possible properties of a Menu:
@@ -354,9 +375,61 @@ widget as an example:
 ```
 As you can see, these menus are connected with "prev_menu" and "next_menu" fields and they both have filters defined.
 This means that once input is submitted for the first step of the menu, Neko will write the input to a database and 
-continue to the second step. For the last step of multi-step menus (2nd step in this example) 
+continue to the second step. For the last step of multistep menus (2nd step in this example) 
 a function has to be defined. The function should process data and redirect our user to another menu.
 
+# Webhooks
+You can easily create "multibots" with NekoGram. It has a custom AIOGram executor class and a separate MySQL storage 
+for this purpose. Here's how you can start a webhook bot:
+```python
+from NekoGram.storages.mysql import KittyMySQLStorage
+from NekoGram import Neko
+
+STORAGE: KittyMySQLStorage = KittyMySQLStorage(database='Example DB', user='example_user', password='Example password')
+NEKO: Neko = Neko(token='YOUR_TOKEN', storage=STORAGE, 
+                  webhook_port=1234,  # Enter a custom port here
+                  webhook_path='/webhook/{token}', # Enter a custom path here
+                  webhook_url='https://example.com/webhook/{token}')  # Enter a custom URL here
+NEKO.start_webhook()  # Optionally pass a loop here
+```
+
+#### Neko initialization details
+1. Make sure you use KittyMySQLStorage, not MySQLStorage.
+2. Pass a proper free port for `webhook_port` parameter.
+3. Pass a custom path for `webhook_path` parameter, which must start with `/` and contain `{token}`.
+4. Pass a proper URL for `webhook_url` parameter, which cannot be localhost, you need to have a domain to run the 
+webhook or use services like [ngrok](https://ngrok.com/) to test it on your local machine. The URL must finish with the 
+value passed in `webhook_path` parameter earlier.
+
+#### How to handle a webhook bot
+There are a few changes to your general interaction with NekoGram in this case, here they are:
+- You now have to pass `bot_token` argument to the following storage functions: `get_user_data`, `set_user_data`, 
+`set_user_menu`, `get_user_menu`.
+- `Menu` objects will now have a non-empty `bot_token` attribute.
+- You have to pass `bot_token` argument to `neko.build_menu()`.
+> Important note: Do not migrate your existing polling bot to webhooks without clearing the database completely
+
+##### An example formatter with webhooks
+```json
+{
+  "lang": "en",
+  "menu_example": {
+    "text": "Hello, you're using the bot with the following token: {token}"
+  }
+}
+```
+```python
+from NekoGram import NekoRouter, Menu, Neko
+from aiogram import types
+
+ROUTER: NekoRouter = NekoRouter()
+
+
+@ROUTER.formatter()
+async def menu_example(data: Menu, user: types.User, neko: Neko):
+    await neko.storage.set_user_data(user_id=user.id, data={'NekoGram_is': 'awesome'}, bot_token=data.bot_token)
+    await data.build(text_format={'token': data.bot_token})
+```
 
 # Afterword
 The documentation is still in-progress so check often for updates. It is also planned to add more widgets and make a 
@@ -364,8 +437,8 @@ series of YouTube tutorials. If you have anything to add, comment or complain ab
 [Telegram chat @NekoGramDev](https://t.me/NekoGramDev).
 
 ### A word from lyteloli
-NekoGram is my personal creation, I implemented everything on my own and try to share it with people to build a 
+NekoGram is my personal creation, I implemented everything on my own and want to share it with people to build a 
 community of Telegram bot development enthusiasts, no matter if you're just playing around, doing personal or 
 commercial projects. I would be very grateful if you could spread a word about NekoGram, help with its development, 
-[buy me a coffee](https://www.buymeacoffee.com/lyteloli) or mention NekoGram in one of your apps created with it. 
+[buy me a coffee](https://www.buymeacoffee.com/lyteloli) or mention NekoGram in one of your bots created with it. 
 Any kind of support is warmly welcome.
