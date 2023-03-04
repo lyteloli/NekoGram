@@ -30,7 +30,10 @@ with NekoGram.
 > Note: Always read the documentation for the release you are using, NekoGram is constantly evolving and newer 
 > releases might be incompatible with older ones.
 
-#### Current version: 2.0
+#### Current major version: 2.1
+> ⚠️ This version implements changes that may be breaking, do not switch to it with existing projects unless you are 
+> ready to resolve them.
+
 > The latest version was not yet published to PyPi so if you want to use webhooks, please clone this repository.
 
 ## Installation

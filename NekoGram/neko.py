@@ -22,7 +22,7 @@ except ImportError:
 
 class Neko(BaseNeko):
     _registration_warned: bool = False
-    _builtin_widgets: List[str] = ['broadcast', 'languages']
+    _builtin_widgets: List[str] = ['broadcast', 'languages', 'stats']
     _widgets_warned: bool = False
     __MENU_ARGS: List[str] = list(inspect.signature(Menu.__init__).parameters.keys())
 

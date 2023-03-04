@@ -67,14 +67,14 @@ class MemoryStorage(BaseStorage):
         LOGGER.info(f'Retrieved last message ID for {user_id}: {message_id}')
         return message_id
 
-    async def create_user(self, user_id: int, language: Optional[str] = None):
+    async def create_user(self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None):
         if language is None:
             language = self.default_language
 
-        self.users[str(user_id)] = {'language': language}
+        self.users[str(user_id)] = {'language': language, 'name': name, 'username': username}
         LOGGER.info(f'Created a new user: {user_id}, {language}')
 
-    async def apply(self, query, args=None):
+    async def apply(self, query, args=None, ignore_errors: bool = False):
         pass
 
     async def select(self, query, args=None) -> AsyncGenerator[Dict[str, Any], None]:

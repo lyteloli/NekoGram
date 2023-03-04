@@ -12,7 +12,8 @@ async def default_start_handler(message: types.Message):
         lang = message.from_user.language_code
         await neko.storage.create_user(user_id=message.from_user.id,
                                        language=lang if lang in neko.text_processor.texts.keys()
-                                       else neko.storage.default_language)
+                                       else neko.storage.default_language,
+                                       name=message.from_user.full_name, username=message.from_user.username)
     else:  # Reset user data on start
         await neko.storage.set_user_data(user_id=message.from_user.id, bot_token=message.conf.get('request_token'))
 

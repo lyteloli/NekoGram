@@ -1,1 +1,1 @@
-from . import broadcast, languages
+from . import broadcast, languages, stats

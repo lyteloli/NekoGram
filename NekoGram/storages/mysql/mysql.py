@@ -49,7 +49,8 @@ class MySQLStorage(BaseStorage):
         structure = self._table_structs[table]
         if isinstance(r, list):  # Table exists
             r: Dict[str, Dict[str, Optional[str]]] = {x['Field']: x for x in r}
-            table_struct: Dict[str, Dict[str, Optional[str]]] = {x['Field']: x for x in structure.values()}
+            table_struct: Dict[str, Dict[str, Optional[str]]] = {x['Field']: x for x in structure.values()
+                                                                 if not isinstance(x, list)}
             for key, value in table_struct.items():
                 sql_code = value['struct']
                 value.pop('struct')
@@ -62,8 +63,13 @@ class MySQLStorage(BaseStorage):
 
         else:  # Table does not exist
             LOGGER.warning(f'Table {table} required by {required_by} does not exist, creating..')
-            await self.apply(f'CREATE TABLE {table} ({",".join([f["struct"] for f in structure.values()])}) '
+            fields = ','.join([f['struct'] for f in structure.values() if not isinstance(f, list)])
+            await self.apply(f'CREATE TABLE {table} ({fields}) '
                              f'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;')
+
+        if structure.get('_extras'):
+            for i in structure['_extras']:
+                await self.apply(i, ignore_errors=True)
 
     async def add_tables(self, structure: Dict[str, Dict[str, Dict[str, Optional[str]]]], required_by: str):
         self._table_structs.update(structure)
@@ -106,11 +112,13 @@ class MySQLStorage(BaseStorage):
             args = (args,)
         return args
 
-    async def apply(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None) -> int:
+    async def apply(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None,
+                    ignore_errors: bool = False) -> int:
         """
         Executes SQL query and returns the number of affected rows
         :param query: SQL query to execute
         :param args: Arguments passed to the SQL query
+        :param ignore_errors: Whether to ignore errors (recommended for internal usage only)
         :return: Number of affected rows
         """
         args = self._verify_args(args)
@@ -120,7 +128,8 @@ class MySQLStorage(BaseStorage):
                     await cursor.execute(query, args)
                     await conn.commit()
                 except mysql_errors.Error as e:
-                    LOGGER.exception(e)
+                    if not ignore_errors:
+                        LOGGER.exception(e)
                     await conn.rollback()
 
                 if 'insert into' in query.lower():
@@ -248,11 +257,13 @@ class MySQLStorage(BaseStorage):
         return (await self.get('SELECT last_message_id FROM nekogram_users WHERE id = %s',
                                user_id)).get('last_message_id')
 
-    async def create_user(self, user_id: int, language: Optional[str] = None):
+    async def create_user(self, user_id: int, name: str, username: Optional[str] = None,
+                          language: Optional[str] = None):
         if language is None:
             language = self.default_language
 
-        await self.apply('INSERT INTO nekogram_users (id, lang) VALUES (%s, %s)', (user_id, language))
+        await self.apply('INSERT INTO nekogram_users (id, lang, full_name, username) VALUES (%s, %s, %s, %s)',
+                         (user_id, language, name, username))
 
 
 class KittyMySQLStorage(MySQLStorage):

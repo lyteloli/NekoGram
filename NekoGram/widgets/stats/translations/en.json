@@ -1,0 +1,9 @@
+{
+  "lang": "en",
+  "widget_stats": {
+    "text": "Total bot interactions: {total}\nMost interactions by {user}{username} ({interactions})",
+    "markup": [
+      [{"text": "⬅Back", "call_data": "menu_start"}]
+    ]
+  }
+}

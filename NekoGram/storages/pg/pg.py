@@ -72,11 +72,13 @@ class PGStorage(BaseStorage):
             args = (args,)
         return args
 
-    async def apply(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None):
+    async def apply(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None,
+                    ignore_errors: bool = False):
         """
         Executes SQL query and returns the number of affected rows
         :param query: SQL query to execute
         :param args: Arguments passed to the SQL query
+        :param ignore_errors: Whether to ignore errors (internal use only)
         :return: Number of affected rows
         """
         args = self._verify_args(args)
@@ -186,8 +188,9 @@ class PGStorage(BaseStorage):
     async def get_last_message_id(self, user_id: int) -> Optional[int]:
         return (await self.get('SELECT last_message_id FROM users WHERE id = %s', user_id)).get('last_message_id')
 
-    async def create_user(self, user_id: int, language: Optional[str] = None):
+    async def create_user(self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None):
         if language is None:
             language = self.default_language
 
-        await self.apply('INSERT INTO users (id, lang) VALUES (%s, %s)', (user_id, language))
+        await self.apply('INSERT INTO users (id, lang, name, username) VALUES (%s, %s, %s, %s)',
+                         (user_id, language, name, username))

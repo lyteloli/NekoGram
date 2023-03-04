@@ -1,8 +1,6 @@
-from aiogram.utils.executor import Executor, DEFAULT_ROUTE_NAME, APP_EXECUTOR_KEY, BOT_DISPATCHER_KEY
 from aiogram.dispatcher.webhook import WebhookRequestHandler, web
 from .base_neko import BaseNeko
-import datetime
-import functools
+from aiogram.utils.executor import Executor
 
 
 class KittyExecutor(Executor):
@@ -10,44 +8,6 @@ class KittyExecutor(Executor):
         super().__init__(dispatcher=neko.dp, skip_updates=skip_updates, check_ip=check_ip, retry_after=retry_after,
                          loop=loop)
         self.neko: BaseNeko = neko
-
-    # def _prepare_webhook(self, path=None, handler=WebhookRequestHandler, route_name=DEFAULT_ROUTE_NAME, app=None):
-    #     self._check_frozen()
-    #     self._freeze = True
-    #
-    #     if app is not None:
-    #         self._web_app = app
-    #     elif self._web_app is None:
-    #         self._web_app = app = web.Application()
-    #     else:
-    #         raise RuntimeError("web.Application() is already configured!")
-    #
-    #     app['neko'] = self.neko
-    #
-    #     if self.retry_after:
-    #         app['RETRY_AFTER'] = self.retry_after
-    #
-    #     if self._identity == app.get(self._identity):
-    #         # App is already configured
-    #         return
-    #
-    #     if path is not None:
-    #         app.router.add_route('*', path, handler, name=route_name)
-    #
-    #     async def _wrap_callback(cb, _):
-    #         return await cb(self.dispatcher)
-    #
-    #     for callback in self._on_startup_webhook:
-    #         app.on_startup.append(functools.partial(_wrap_callback, callback))
-    #
-    #     async def _on_shutdown(_):
-    #         await self._shutdown_webhook()
-    #
-    #     app.on_shutdown.append(_on_shutdown)
-    #     app[APP_EXECUTOR_KEY] = self
-    #     app[BOT_DISPATCHER_KEY] = self.dispatcher
-    #     app[self._identity] = datetime.datetime.now()
-    #     app['_check_ip'] = self.check_ip
 
 
 class KittyWebhook(WebhookRequestHandler):

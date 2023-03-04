@@ -55,11 +55,11 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def create_user(self, user_id: int, language: Optional[str] = None):
+    async def create_user(self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None):
         pass
 
     @abstractmethod
-    async def apply(self, query, args=None):
+    async def apply(self, query, args=None, ignore_errors: bool = False):
         pass
 
     async def select(self, query, args=None) -> AsyncGenerator[Dict[str, Any], None]:
@@ -75,4 +75,7 @@ class BaseStorage(ABC):
         pass
 
     async def acquire_pool(self):
+        pass
+
+    async def add_tables(self, structure: Dict[str, Dict[str, Dict[str, Optional[str]]]], required_by: str):
         pass

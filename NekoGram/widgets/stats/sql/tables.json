@@ -1,0 +1,15 @@
+{
+  "nekogram_stats": {
+    "id": {"Field": "id", "Type": "int(11)", "Null": "NO", "Key": "PRI", "Default": null, "Extra": "auto_increment",
+      "struct":  "`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY"},
+    "user_id": {"Field": "user_id", "Type": "bigint(20)", "Null": "NO", "Key": "MUL", "Default": null, "Extra": "",
+      "struct": "`user_id` bigint(20) NOT NULL"},
+    "interaction_date": {"Field": "interaction_date", "Type": "timestamp", "Null": "YES", "Key": "", "Default": null, "Extra": "",
+      "struct": "`interaction_date` timestamp NULL DEFAULT NULL"},
+    "interaction": {"Field": "interaction", "Type": "longtext", "Null": "NO", "Key": "", "Default": "'{}'", "Extra": "",
+      "struct": "`interaction` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}'"},
+    "_extras": [
+      "ALTER TABLE `nekogram_stats` ADD CONSTRAINT `nekogram_stats_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `nekogram_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;"
+    ]
+  }
+}
