@@ -1,14 +1,15 @@
 from typing import Optional, Union, Dict, List, Any, Type
 from contextlib import suppress
-from .base_neko import BaseNeko
 from aiogram import types
+
+from .base_neko import BaseNeko
 from .logger import LOGGER
 
 
 class Menu:
     __default_keyboard_values: Dict[str, str] = {'callback_data': 'call_data', 'switch_inline_query': 'query',
                                                  'switch_inline_query_current_chat': 'cc_query',
-                                                 'text': 'text', 'url': 'url'}
+                                                 'text': 'text', 'url': 'url', 'menu': 'call_data'}
     __inline_markup_identifiers: List[str] = ['call_data', 'callback_data', 'query', 'switch_inline_query', 'cc_query',
                                               'switch_inline_query_current_chat', 'url']
 
@@ -40,8 +41,12 @@ class Menu:
         self.filters: Optional[List[str]] = filters
         self._call_data: Optional[Union[str, int]] = callback_data
         self.bot_token: Optional[str] = bot_token
+        self.bot_id: Optional[int] = None
         self.intermediate_menu: Optional[str] = intermediate_menu
         self._break_execution: bool = False
+
+        if self.bot_token:
+            self.bot_id = int(self.bot_token.split(':')[0])
 
     def break_execution(self):
         self._break_execution = True
@@ -79,10 +84,11 @@ class Menu:
         msg = await self.obj.bot.send_message(chat_id=user_id, text=self.text,
                                               parse_mode=self.parse_mode, disable_web_page_preview=self.no_preview,
                                               disable_notification=self.silent, reply_markup=self.markup)
-        last_message_id = await self.neko.storage.get_last_message_id(user_id=user_id)
-        await self.neko.storage.set_last_message_id(user_id=user_id, message_id=msg.message_id)
-        with suppress(Exception):
-            await self.obj.bot.delete_message(chat_id=user_id, message_id=last_message_id)
+        if self.neko.delete_messages:
+            last_message_id = await self.neko.storage.get_last_message_id(user_id=user_id)
+            await self.neko.storage.set_last_message_id(user_id=user_id, message_id=msg.message_id)
+            with suppress(Exception):
+                await self.obj.bot.delete_message(chat_id=user_id, message_id=last_message_id)
         return msg
 
     async def edit_text(self) -> types.Message:

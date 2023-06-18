@@ -1,14 +1,16 @@
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from contextlib import suppress
-from .base_neko import BaseNeko
 from aiogram import types
 from typing import Union
 from io import BytesIO
 import aiohttp
+
 try:
     import ujson as json
 except ImportError:
     import json
+
+from .base_neko import BaseNeko
 
 
 class HandlerInjector(BaseMiddleware):
@@ -20,7 +22,7 @@ class HandlerInjector(BaseMiddleware):
         super().__init__()
         self.neko: BaseNeko = neko
 
-    async def on_process_message(self, message: types.Message, _: dict):
+    async def on_pre_process_message(self, message: types.Message, _: dict):
         """
         This handler is called when dispatcher receives a message
         """

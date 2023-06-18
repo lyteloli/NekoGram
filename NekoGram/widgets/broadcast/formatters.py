@@ -1,17 +1,19 @@
 from aiogram.types import User, InlineKeyboardMarkup, InlineKeyboardButton, Message
-from NekoGram import Neko, Menu, NekoRouter
 from typing import Dict, List
 try:
     import ujson as json
 except ImportError:
     import json
 
+from NekoGram import Neko, Menu, NekoRouter
+
+
 ROUTER: NekoRouter = NekoRouter(name='broadcast')
 
 
 @ROUTER.formatter()
-async def widget_broadcast(data: Menu, user: User, neko: Neko):
-    if not await neko.storage.check('SELECT id FROM nekogram_users WHERE id != %s', user.id):
+async def widget_broadcast(data: Menu, _: User, neko: Neko):
+    if await neko.storage.user_count < 2:
         await data.obj.answer(text=data.extras['alt_text'], show_alert=True)
         data.break_execution()
 

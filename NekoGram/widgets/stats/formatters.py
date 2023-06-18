@@ -1,9 +1,12 @@
-from NekoGram import Neko, Menu, NekoRouter
 from aiogram import types
+
 try:
     import ujson as json
 except ImportError:
     import json
+
+from NekoGram import Neko, Menu, NekoRouter
+
 
 ROUTER: NekoRouter = NekoRouter(name='stats')
 

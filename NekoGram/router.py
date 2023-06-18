@@ -1,7 +1,8 @@
 from typing import Callable, Optional, Union, Dict, Any, Awaitable
+from aiogram import types
+
 from .base_neko import BaseNeko
 from .logger import LOGGER
-from aiogram import types
 from .menus import Menu
 
 

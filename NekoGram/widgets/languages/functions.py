@@ -1,5 +1,7 @@
-from NekoGram import NekoRouter, Menu, Neko
 from aiogram import types
+
+from NekoGram import NekoRouter, Menu, Neko
+
 
 ROUTER: NekoRouter = NekoRouter(name='languages')
 

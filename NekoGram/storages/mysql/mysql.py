@@ -1,9 +1,7 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
 from pymysql import err as mysql_errors
-from ..base_storage import BaseStorage
 from pymysql.constants import CLIENT
 from contextlib import suppress
-from ...logger import LOGGER
 import aiomysql
 import os
 
@@ -16,6 +14,9 @@ try:
     import ujson as json
 except ImportError:
     import json
+
+from ..base_storage import BaseStorage
+from ...logger import LOGGER
 
 
 class MySQLStorage(BaseStorage):
@@ -264,6 +265,14 @@ class MySQLStorage(BaseStorage):
 
         await self.apply('INSERT INTO nekogram_users (id, lang, full_name, username) VALUES (%s, %s, %s, %s)',
                          (user_id, language, name, username))
+
+    @property
+    async def user_count(self) -> int:
+        return await self.check('SELECT id FROM nekogram_users')
+
+    async def select_users(self) -> AsyncGenerator[Dict[str, Any], None]:
+        async for item in self.select('SELECT * FROM nekogram_users'):
+            yield item
 
 
 class KittyMySQLStorage(MySQLStorage):

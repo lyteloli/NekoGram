@@ -74,6 +74,15 @@ class BaseStorage(ABC):
     async def check(self, query: str, args=None) -> int:
         pass
 
+    @abstractmethod
+    @property
+    async def user_count(self) -> int:
+        pass
+
+    @abstractmethod
+    async def select_users(self) -> AsyncGenerator[Dict[str, Any], None]:
+        pass
+
     async def acquire_pool(self):
         pass
 

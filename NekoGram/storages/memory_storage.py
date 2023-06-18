@@ -1,4 +1,5 @@
 from typing import Union, Optional, Dict, Any, AsyncGenerator, List
+
 from .base_storage import BaseStorage
 from ..logger import LOGGER
 
@@ -71,7 +72,7 @@ class MemoryStorage(BaseStorage):
         if language is None:
             language = self.default_language
 
-        self.users[str(user_id)] = {'language': language, 'name': name, 'username': username}
+        self.users[str(user_id)] = {'language': language, 'name': name, 'username': username, 'id': user_id}
         LOGGER.info(f'Created a new user: {user_id}, {language}')
 
     async def apply(self, query, args=None, ignore_errors: bool = False):
@@ -86,3 +87,11 @@ class MemoryStorage(BaseStorage):
 
     async def check(self, query: str, args=None) -> int:
         pass
+
+    @property
+    async def user_count(self) -> int:
+        return len(self.users.keys())
+
+    async def select_users(self) -> AsyncGenerator[Dict[str, Any], None]:
+        for user in self.users.values():
+            yield user

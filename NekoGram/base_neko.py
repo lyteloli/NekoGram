@@ -1,11 +1,12 @@
 from typing import Optional, Dict, List, Union, Any, Callable, Awaitable
 from aiogram.dispatcher.filters.builtin import ChatTypeFilter
-from .text_processors import BaseProcessor, JSONProcessor
-from .filters import StartsWith, HasMenu, BuiltInFilters
 from aiogram import Bot, Dispatcher, executor, types
-from .storages import BaseStorage, MemoryStorage
 from aiogram.dispatcher.filters import Filter
 from abc import ABC, abstractmethod
+
+from .text_processors import BaseProcessor, JSONProcessor
+from .filters import StartsWith, HasMenu, BuiltInFilters
+from .storages import BaseStorage, MemoryStorage
 from .logger import LOGGER
 from . import handlers
 
@@ -14,7 +15,7 @@ class BaseNeko(ABC):
     def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
                  entrypoint: str = 'start', menu_prefixes: Union[List[str]] = 'menu_',
-                 callback_parameters_delimiter: str = '#'):
+                 callback_parameters_delimiter: str = '#', delete_messages: bool = True):
         """
         Initialize a Neko
         :param storage: A class that inherits from BaseDatabase class
@@ -26,6 +27,7 @@ class BaseNeko(ABC):
         :param entrypoint: App entrypoint menu name (defaults to start)
         :param menu_prefixes: Common prefixes for menus defined in translation files
         :param callback_parameters_delimiter: A delimiter for callback data arguments
+        :param delete_messages: Whether to delete old messages in conversation automatically
         """
         self.bot: Bot
         self.dp: Dispatcher
@@ -68,6 +70,7 @@ class BaseNeko(ABC):
         self.prev_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()
         self.next_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()
         self._markup_overriders: Dict[str, Dict[str, Callable[[Any], Awaitable[List[List[Dict[str, str]]]]]]] = dict()
+        self.delete_messages: bool = delete_messages
 
         print(r'''
    _  __    __        _____             

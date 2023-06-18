@@ -1,6 +1,7 @@
 from aiogram.dispatcher.webhook import WebhookRequestHandler, web
-from .base_neko import BaseNeko
 from aiogram.utils.executor import Executor
+
+from .base_neko import BaseNeko
 
 
 class KittyExecutor(Executor):

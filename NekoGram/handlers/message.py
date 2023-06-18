@@ -1,6 +1,7 @@
 from aiogram import types, exceptions as aiogram_exc
 from typing import Union, Dict, Any, Optional
 from contextlib import suppress
+
 from ..logger import LOGGER
 import NekoGram
 
@@ -26,8 +27,9 @@ async def default_start_handler(message: types.Message):
         return
     else:
         await current_menu.send_message()
-        with suppress(Exception):
-            await message.delete()
+        if neko.delete_messages:
+            with suppress(Exception):
+                await message.delete()
 
 
 async def menu_message_handler(message: types.Message):
@@ -46,12 +48,13 @@ async def menu_message_handler(message: types.Message):
     if message.text and message.text.startswith('⬅️'):  # Back button clicked
         await neko.storage.set_user_menu(menu=current_menu.prev_menu or None, user_id=message.from_user.id,
                                          bot_token=bot_token)
-        last_message_id = await neko.storage.get_last_message_id(user_id=message.from_user.id)
-        try:
-            await neko.bot.delete_message(chat_id=message.from_user.id, message_id=last_message_id)
-        except (aiogram_exc.MessageCantBeDeleted, aiogram_exc.MessageToDeleteNotFound):
-            with suppress(Exception):
-                await neko.bot.edit_message_reply_markup(chat_id=message.from_user.id, message_id=last_message_id)
+        if neko.delete_messages:
+            last_message_id = await neko.storage.get_last_message_id(user_id=message.from_user.id)
+            try:
+                await neko.bot.delete_message(chat_id=message.from_user.id, message_id=last_message_id)
+            except (aiogram_exc.MessageCantBeDeleted, aiogram_exc.MessageToDeleteNotFound):
+                with suppress(Exception):
+                    await neko.bot.edit_message_reply_markup(chat_id=message.from_user.id, message_id=last_message_id)
 
         if neko.prev_menu_handlers.get(current_menu.name):
             current_menu.prev_menu = await neko.prev_menu_handlers[current_menu.name](current_menu)
@@ -60,8 +63,9 @@ async def menu_message_handler(message: types.Message):
             return
         await menu.send_message()
 
-        with suppress(Exception):
-            await message.delete()
+        if neko.delete_messages:
+            with suppress(Exception):
+                await message.delete()
         return
 
     if current_menu.filters:  # Check filters

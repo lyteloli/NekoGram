@@ -1,10 +1,12 @@
-from ...base_neko import BaseNeko
 from typing import Optional
 import os
+
 try:
     import ujson as json
 except ImportError:
     import json
+
+from ...base_neko import BaseNeko
 
 
 async def startup(_: BaseNeko) -> Optional[dict]:

@@ -1,11 +1,13 @@
 from aiogram.dispatcher.middlewares import BaseMiddleware
-from ...base_neko import BaseNeko
 from aiogram import types
 import os
+
 try:
     import ujson as json
 except ImportError:
     import json
+
+from ...base_neko import BaseNeko
 
 
 class StatsInjector(BaseMiddleware):

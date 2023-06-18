@@ -1,5 +1,4 @@
 from typing import Union, Optional, Any, TextIO, Dict
-from .base_processor import BaseProcessor
 from os.path import isdir, isfile
 from io import TextIOWrapper
 from os import listdir
@@ -8,6 +7,8 @@ try:
     import ujson as json
 except ImportError:
     import json
+
+from .base_processor import BaseProcessor
 
 
 class JSONProcessor(BaseProcessor):

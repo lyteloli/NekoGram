@@ -1,16 +1,7 @@
 from typing import Dict, List, Union, Optional, Any, Callable, Awaitable
-from .webhook import KittyWebhook, KittyExecutor
-from .text_processors import BaseProcessor
 from aiogram import Dispatcher, Bot, types
-from .storages.mysql import MySQLStorage
-from .utils import HandlerInjector
-from .storages import BaseStorage
-from .base_neko import BaseNeko
-from .router import NekoRouter
 from datetime import datetime
-from .logger import LOGGER
 from copy import deepcopy
-from .menus import Menu
 import inspect
 import os
 
@@ -18,6 +9,15 @@ try:
     import ujson as json
 except ImportError:
     import json
+
+from .webhook import KittyWebhook, KittyExecutor
+from .text_processors import BaseProcessor
+from .utils import HandlerInjector
+from .storages import BaseStorage
+from .base_neko import BaseNeko
+from .router import NekoRouter
+from .logger import LOGGER
+from .menus import Menu
 
 
 class Neko(BaseNeko):
@@ -184,7 +184,7 @@ class Neko(BaseNeko):
     async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
                          user_id: Optional[int] = None,
                          callback_data: Optional[Union[str, int]] = None,
-                         auto_build: bool = True) -> Optional[Menu]:
+                         auto_build: bool = True, lang: Optional[str] = None) -> Optional[Menu]:
         """
         Build a menu by its name
         :param name: Menu name, same as in translation file
@@ -192,12 +192,14 @@ class Neko(BaseNeko):
         :param user_id: An ID of a user to build menu for
         :param callback_data: Callback data to assign to a menu
         :param auto_build: Whether to build the Menu if no formatter is defined
+        :param lang: User language
         :return: A Menu object
         """
         if name == 'menu_start':  # Start patch
             name = 'start'
 
-        lang = await self.storage.get_user_language(user_id=user_id or obj.from_user.id)
+        if lang is None:
+            lang = await self.storage.get_user_language(user_id=user_id or obj.from_user.id)
         text: Dict[str, Any] = deepcopy(self.text_processor.texts[lang].get(name))
         if not obj:
             raise RuntimeError(f'Neither Message nor CallbackQuery was provided during menu building for {name}! '
@@ -270,7 +272,7 @@ class Neko(BaseNeko):
         :param formatters_to_ignore: A list of formatter names to ignore
         :param functions_to_ignore: A list of function names to ignore
         """
-        if not isinstance(self.storage, MySQLStorage) and not self._widgets_warned:
+        if self.storage.__class__.__name__ != 'MySQLStorage' and not self._widgets_warned:
             LOGGER.warning(f'Your storage is not MySQLStorage, widgets may function improperly.')
             self._widgets_warned = True
         if formatters_router.name is None or formatters_router.name != functions_router.name \
@@ -307,7 +309,7 @@ class Neko(BaseNeko):
         self.attach_router(formatters_router)
         self.attach_router(functions_router)
 
-        if db_table_structure_path and isinstance(self.storage, MySQLStorage):
+        if db_table_structure_path and self.storage.__class__.__name__ == 'MySQLStorage':
             with open(db_table_structure_path, 'r') as f:
                 table_structure = json.load(f)
             await self.storage.add_tables(table_structure, required_by=formatters_router.name)
@@ -335,7 +337,7 @@ class Neko(BaseNeko):
                                     port=self.__webhook_port, request_handler=KittyWebhook, loop=loop)
 
     async def set_webhook(self, bot_token: str, validate_token: bool = True,
-                          drop_pending_updates: Optional[bool] = None):
+                          drop_pending_updates: Optional[bool] = None) -> types.User:
         """
         Set a webhook for a child bot
         :param bot_token: Child bot token
@@ -347,3 +349,4 @@ class Neko(BaseNeko):
         with self.bot.with_token(bot_token=bot_token, validate_token=validate_token):
             await self.bot.set_webhook(url=self.__webhook_url.format(token=bot_token),
                                        drop_pending_updates=drop_pending_updates)
+            return await self.bot.get_me()

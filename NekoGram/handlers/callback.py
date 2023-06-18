@@ -1,6 +1,7 @@
 from aiogram import exceptions as aiogram_exceptions, types
 from typing import List, Optional, Union
 from contextlib import suppress
+
 import NekoGram
 
 
@@ -35,8 +36,9 @@ async def menu_callback_query_handler(call: types.CallbackQuery):
     try:
         await current_menu.edit_text()
     except aiogram_exceptions.InlineKeyboardExpected:
-        with suppress(Exception):
-            await call.message.delete()
+        if neko.delete_messages:
+            with suppress(Exception):
+                await call.message.delete()
         await current_menu.send_message()
     except (aiogram_exceptions.MessageCantBeEdited, aiogram_exceptions.MessageToEditNotFound):
         await current_menu.send_message()

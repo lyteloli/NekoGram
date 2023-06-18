@@ -1,20 +1,20 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
-from ...logger import LOGGER
+from aiopg.sa import create_engine
+from psycopg2 import Error
+import asyncio
 
 try:
     from psycopg2.extras import DictCursor
 except ImportError:
     raise ImportError('Install aiopg to use PGStorage!')
 
-from ..base_storage import BaseStorage
-from aiopg.sa import create_engine
-from psycopg2 import Error
-import asyncio
-
 try:
     import ujson as json
 except ImportError:
     import json
+
+from ..base_storage import BaseStorage
+from ...logger import LOGGER
 
 
 class PGStorage(BaseStorage):
@@ -194,3 +194,11 @@ class PGStorage(BaseStorage):
 
         await self.apply('INSERT INTO users (id, lang, name, username) VALUES (%s, %s, %s, %s)',
                          (user_id, language, name, username))
+
+    @property
+    async def user_count(self) -> int:
+        return await self.check('SELECT id FROM nekogram_users')
+
+    async def select_users(self) -> AsyncGenerator[Dict[str, Any], None]:
+        async for item in self.select('SELECT * FROM nekogram_users'):
+            yield item

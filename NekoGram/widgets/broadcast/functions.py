@@ -1,10 +1,12 @@
 from aiogram import exceptions as aiogram_exc, types
-from NekoGram import Neko, Menu, NekoRouter
-from NekoGram.utils import telegraph_upload
 from typing import Union, Dict, List
 from asyncio import sleep
 from io import BytesIO
+
+from NekoGram import Neko, Menu, NekoRouter
+from NekoGram.utils import telegraph_upload
 from . import utils
+
 
 ROUTER: NekoRouter = NekoRouter(name='broadcast')
 
@@ -82,14 +84,17 @@ async def widget_broadcast_add_button_step_2(_: Menu, message: Union[types.Messa
 async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, types.CallbackQuery], neko: Neko):
     user_data = await neko.storage.get_user_data(user_id=call.from_user.id)
 
-    total: int = await neko.storage.check('SELECT id FROM nekogram_users WHERE id != %s', call.from_user.id)
+    total: int = await neko.storage.user_count
     attempts: int = 0
     successful: int = 0
     failed: int = 0
 
     await call.message.edit_text(text=data.text.format(total=total, attempts=0, successful=0, failed=0))
 
-    async for user in neko.storage.select('SELECT id FROM nekogram_users WHERE id != %s', call.from_user.id):
+    async for user in neko.storage.select_users():
+        if user['id'] == call.from_user.id:
+            continue
+
         attempts += 1
         while True:
             try:
