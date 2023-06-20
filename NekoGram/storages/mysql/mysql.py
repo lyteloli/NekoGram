@@ -45,7 +45,7 @@ class MySQLStorage(BaseStorage):
     def __del__(self):
         self.pool.close()
 
-    async def verify_table(self, table: str, required_by: str):
+    async def verify_table(self, table: str, required_by: str) -> None:
         r = await self.get(f'DESCRIBE {table}', fetch_all=True)
         structure = self._table_structs[table]
         if isinstance(r, list):  # Table exists
@@ -72,12 +72,12 @@ class MySQLStorage(BaseStorage):
             for i in structure['_extras']:
                 await self.apply(i, ignore_errors=True)
 
-    async def add_tables(self, structure: Dict[str, Dict[str, Dict[str, Optional[str]]]], required_by: str):
+    async def add_tables(self, structure: Dict[str, Dict[str, Dict[str, Optional[str]]]], required_by: str) -> None:
         self._table_structs.update(structure)
         for table in structure.keys():
             await self.verify_table(table=table, required_by=required_by)
 
-    async def _verify(self):
+    async def _verify(self) -> None:
         connection = await aiomysql.connect(host=self.host, user=self.user, password=self.password, port=self.port,
                                             client_flag=CLIENT.MULTI_STATEMENTS)
         async with connection.cursor(DictCursor) as cursor:
@@ -89,7 +89,7 @@ class MySQLStorage(BaseStorage):
                 await connection.commit()
         connection.close()
 
-    async def acquire_pool(self):
+    async def acquire_pool(self) -> None:
         """
         Creates a new MySQL pool
         """
@@ -106,14 +106,14 @@ class MySQLStorage(BaseStorage):
         LOGGER.info('MySQLStorage initialized successfully. ~nya')
 
     @staticmethod
-    def _verify_args(args: Optional[Union[Tuple[Union[Any, Dict[str, Any]], ...], Any]]):
+    def _verify_args(args: Optional[Union[Tuple[Union[Any, Dict[str, Any]], ...], Any]]) -> Tuple[Any, ...]:
         if args is None:
             args = tuple()
         if not isinstance(args, (tuple, dict)):
             args = (args,)
         return args
 
-    async def apply(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None,
+    async def apply(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
                     ignore_errors: bool = False) -> int:
         """
         Executes SQL query and returns the number of affected rows
@@ -138,7 +138,7 @@ class MySQLStorage(BaseStorage):
                 else:
                     return cursor.rowcount
 
-    async def select(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None) -> \
+    async def select(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()) -> \
             AsyncGenerator[Dict[str, Any], None]:
         """
         Generator that yields rows
@@ -161,7 +161,7 @@ class MySQLStorage(BaseStorage):
                 except mysql_errors.Error:
                     pass
 
-    async def get(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None,
+    async def get(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
                   fetch_all: bool = False) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database
@@ -185,7 +185,7 @@ class MySQLStorage(BaseStorage):
                 except mysql_errors.Error:
                     return False
 
-    async def check(self, query: str, args: Optional[Union[Tuple[Any, ...], Dict[str, Any], Any]] = None) -> int:
+    async def check(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()) -> int:
         args = self._verify_args(args)
         async with self.pool.acquire() as conn:
             async with conn.cursor(DictCursor) as cursor:
@@ -197,7 +197,13 @@ class MySQLStorage(BaseStorage):
                 except mysql_errors.Error:
                     return 0
 
-    async def set_user_language(self, user_id: int, language: str):
+    async def set_user_language(self, user_id: int, language: str) -> None:
+        """
+        Get user's language
+        :param user_id: Telegram ID of the user
+        :param language: User's language to be set
+        :return: None
+        """
         await super().set_user_language(user_id=user_id, language=language)
         await self.apply('UPDATE nekogram_users SET lang = %s WHERE id = %s', (language, user_id))
 
@@ -220,14 +226,17 @@ class MySQLStorage(BaseStorage):
         :param user_id: Telegram ID of the user
         :return: Decoded JSON user data
         """
-        try:
-            return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s',
-                                              user_id))['data'])
-        except TypeError:
-            return False
+        return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data'])
 
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
                             replace: bool = False, **kwargs) -> Dict[str, Any]:
+        """
+        Set user data
+        :param user_id: Telegram ID of the user
+        :param data: User data
+        :param replace: Replace user data with `data` if replace=True, otherwise merge existing with `data`
+        :return: Decoded JSON user data
+        """
         if data is None:
             data = dict()
             replace = True
@@ -241,17 +250,10 @@ class MySQLStorage(BaseStorage):
         await self.apply('UPDATE nekogram_users SET data = %s WHERE id = %s', (json.dumps(user_data), user_id))
         return user_data
 
-    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, **kwargs):
-        await self.set_user_data(user_id=user_id, data={'menu': menu})
-        return menu
-
-    async def get_user_menu(self, user_id: int, **kwargs) -> Optional[str]:
-        return (await self.get_user_data(user_id=user_id)).get('menu')
-
     async def check_user_exists(self, user_id: int) -> bool:
         return bool(await self.check('SELECT id FROM nekogram_users WHERE id = %s', user_id))
 
-    async def set_last_message_id(self, user_id: int, message_id: int):
+    async def set_last_message_id(self, user_id: int, message_id: int) -> None:
         await self.apply('UPDATE nekogram_users SET last_message_id = %s WHERE id = %s', (message_id, user_id))
 
     async def get_last_message_id(self, user_id: int) -> Optional[int]:
@@ -259,20 +261,12 @@ class MySQLStorage(BaseStorage):
                                user_id)).get('last_message_id')
 
     async def create_user(self, user_id: int, name: str, username: Optional[str] = None,
-                          language: Optional[str] = None):
+                          language: Optional[str] = None) -> None:
         if language is None:
             language = self.default_language
 
         await self.apply('INSERT INTO nekogram_users (id, lang, full_name, username) VALUES (%s, %s, %s, %s)',
                          (user_id, language, name, username))
-
-    @property
-    async def user_count(self) -> int:
-        return await self.check('SELECT id FROM nekogram_users')
-
-    async def select_users(self) -> AsyncGenerator[Dict[str, Any], None]:
-        async for item in self.select('SELECT * FROM nekogram_users'):
-            yield item
 
 
 class KittyMySQLStorage(MySQLStorage):
@@ -288,11 +282,8 @@ class KittyMySQLStorage(MySQLStorage):
         :param bot_token: Token of the current bot
         :return: Decoded JSON user data
         """
-        try:
-            return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s',
-                                              user_id))['data']).get(bot_token, dict())
-        except TypeError:
-            return False
+        return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s',
+                                          user_id))['data']).get(bot_token, dict())
 
     async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
                             replace: bool = False, bot_token: Optional[str] = None) -> Dict[str, Any]:
@@ -308,7 +299,7 @@ class KittyMySQLStorage(MySQLStorage):
         await self.apply('UPDATE nekogram_users SET data = %s WHERE id = %s', (json.dumps(raw_user_data), user_id))
         return raw_user_data.get(bot_token, dict())
 
-    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, bot_token: Optional[str] = None):
+    async def set_user_menu(self, user_id: int, menu: Optional[str] = None, bot_token: Optional[str] = None) -> str:
         await self.set_user_data(user_id=user_id, data={'menu': menu}, bot_token=bot_token)
         return menu
 

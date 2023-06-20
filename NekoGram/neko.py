@@ -26,7 +26,7 @@ class Neko(BaseNeko):
     _widgets_warned: bool = False
     __MENU_ARGS: List[str] = list(inspect.signature(Menu.__init__).parameters.keys())
 
-    def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
+    def __init__(self, storage: Optional[BaseStorage], token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
                  menu_prefixes: Union[List[str]] = 'menu_', load_texts: bool = True,
                  callback_parameters_delimiter: str = '#', attach_required_middleware: bool = True,
