@@ -25,6 +25,7 @@ class PGStorage(BaseStorage):
         super().__init__(default_language=default_language)
 
     async def acquire_pool(self) -> None:
+
         try:
             self.pool = await asyncpg.pool.create_pool(database=self.database, host=self.host, port=self.port,
                                                        user=self.user, password=self.password)

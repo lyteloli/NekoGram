@@ -47,7 +47,6 @@ class SQLiteStorage(BaseStorage):
         :return: Number of affected rows.
         """
         try:
-            print(query, args)
             cursor: aiosqlite.Cursor = await self.pool.execute(query, args)
             await self.pool.commit()
         except Exception as e:
@@ -155,9 +154,7 @@ class SQLiteStorage(BaseStorage):
         return user_data
 
     async def check_user_exists(self, user_id: int) -> bool:
-        rv = await self.check('SELECT "id" FROM "nekogram_users" WHERE "id" = ?;', (user_id, ))
-        print(rv)
-        return rv != -1
+        return bool(await self.check('SELECT "id" FROM "nekogram_users" WHERE "id" = ?;', (user_id, )))
 
     async def set_last_message_id(self, user_id: int, message_id: int) -> None:
         await self.apply('UPDATE "nekogram_users" SET "last_message_id" = ? WHERE "id" = ?;', (message_id, user_id))
