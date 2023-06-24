@@ -84,14 +84,14 @@ async def widget_broadcast_add_button_step_2(_: Menu, message: Union[types.Messa
 async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, types.CallbackQuery], neko: Neko):
     user_data = await neko.storage.get_user_data(user_id=call.from_user.id)
 
-    total: int = await neko.storage.user_count
+    total: int = await neko.storage.check('SELECT id FROM nekogram_users;')
     attempts: int = 0
     successful: int = 0
     failed: int = 0
 
     await call.message.edit_text(text=data.text.format(total=total, attempts=0, successful=0, failed=0))
 
-    async for user in neko.storage.select_users():
+    async for user in neko.storage.select('SELECT * FROM nekogram_users;'):
         if user['id'] == call.from_user.id:
             continue
 

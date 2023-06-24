@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 
 class BaseStorage(ABC):
     def __init__(self, default_language: str = 'en'):
-        self.users: Dict[str, Dict[str, Any]] = dict()
         self.default_language: str = default_language
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
 
@@ -75,19 +74,19 @@ class BaseStorage(ABC):
     async def check(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()) -> int:
         pass
 
-    @property
-    async def user_count(self) -> int:
-        return await self.check('SELECT id FROM nekogram_users;')
-
-    async def select_users(self) -> AsyncGenerator[Dict[str, Any], None]:
-        async for user in self.select('SELECT * FROM nekogram_users;'):
-            yield user
-
-    async def acquire_pool(self) -> None:
+    @abstractmethod
+    async def acquire_pool(self) -> bool:
         pass
 
-    async def close_pool(self) -> None:
+    @abstractmethod
+    async def close_pool(self) -> bool:
         pass
 
     async def add_tables(self, structure: Dict[str, Dict[str, Dict[str, Optional[str]]]], required_by: str):
         pass
+
+    @staticmethod
+    def _verify_args(args: Any) -> Tuple[Any, ...]:
+        if not isinstance(args, (tuple, dict)):
+            args = (args,)
+        return args

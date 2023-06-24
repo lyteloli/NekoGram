@@ -9,3 +9,5 @@ Pipfile.lock
 .pytest_cache/
 venv/
 test.py
+*.db
+*.sqlite
