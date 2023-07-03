@@ -1,1 +1,1 @@
-from .pg import PGStorage
+from .pg import PGStorage, KittyPGStorage

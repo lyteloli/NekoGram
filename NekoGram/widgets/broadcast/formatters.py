@@ -13,7 +13,7 @@ ROUTER: NekoRouter = NekoRouter(name='broadcast')
 
 @ROUTER.formatter()
 async def widget_broadcast(data: Menu, _: User, neko: Neko):
-    if await neko.storage.user_count < 2:
+    if await neko.storage.check('SELECT id FROM nekogram_users;') < 2:
         await data.obj.answer(text=data.extras['alt_text'], show_alert=True)
         data.break_execution()
 

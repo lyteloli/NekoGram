@@ -6,13 +6,13 @@ from abc import ABC, abstractmethod
 
 from .text_processors import BaseProcessor, JSONProcessor
 from .filters import StartsWith, HasMenu, BuiltInFilters
-from .storages import BaseStorage, MemoryStorage
+from .storages import BaseStorage
 from .logger import LOGGER
 from . import handlers
 
 
 class BaseNeko(ABC):
-    def __init__(self, storage: Optional[BaseStorage] = None, token: Optional[str] = None, bot: Optional[Bot] = None,
+    def __init__(self, storage: Optional[BaseStorage], token: Optional[str] = None, bot: Optional[Bot] = None,
                  dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
                  entrypoint: str = 'start', menu_prefixes: Union[List[str]] = 'menu_',
                  callback_parameters_delimiter: str = '#', delete_messages: bool = True):
@@ -41,16 +41,11 @@ class BaseNeko(ABC):
         else:
             raise ValueError('No Dispatcher, Bot or token provided during Neko initialization')
 
-        if storage is None:
-            storage = MemoryStorage()
         self.storage: BaseStorage = storage
 
         if text_processor is None:
             text_processor = JSONProcessor()
         self.text_processor: BaseProcessor = text_processor
-
-        if type(storage) == MemoryStorage:  # Check if MemoryStorage is used
-            LOGGER.warning('You are using MemoryStorage which does not store data permanently! *sigh of condemnation*')
 
         if isinstance(menu_prefixes, str):
             menu_prefixes = [menu_prefixes]
