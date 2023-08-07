@@ -243,7 +243,7 @@ class KittySQLiteStorage(SQLiteStorage):
         if data is None:
             user_data.pop(bot_token, None)
         else:
-            if bot_token not in user_data.keys():
+            if bot_token not in user_data.keys() or replace:
                 user_data[bot_token] = data
             else:
                 user_data[bot_token].update(data)

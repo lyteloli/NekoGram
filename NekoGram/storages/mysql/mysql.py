@@ -333,7 +333,7 @@ class KittyMySQLStorage(MySQLStorage):
         if data is None:
             raw_user_data.pop(bot_token, None)
         else:
-            if bot_token not in raw_user_data.keys():
+            if bot_token not in raw_user_data.keys() or replace:
                 raw_user_data[bot_token] = data
             else:
                 raw_user_data[bot_token].update(data)
