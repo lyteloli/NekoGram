@@ -1,5 +1,6 @@
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from contextlib import suppress
+from functools import wraps
 from aiogram import types
 from typing import Union
 from io import BytesIO
@@ -11,6 +12,7 @@ except ImportError:
     import json
 
 from .base_neko import BaseNeko
+from .logger import LOGGER
 
 
 class HandlerInjector(BaseMiddleware):
@@ -74,3 +76,13 @@ async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bo
                 return f'https://telegra.ph{r[-1]["src"]}'
     except aiohttp.ClientError:
         return False
+
+
+def warn_deprecated(new_function: str):
+    def decorator(callback: callable):
+        async def wrapper(*args, **kwargs):
+            LOGGER.warning(f'{callback.__name__} is deprecated and may be removed in future updates, '
+                           f'use {new_function} instead.')
+            return await callback(*args, **kwargs)
+        return wrapper
+    return decorator

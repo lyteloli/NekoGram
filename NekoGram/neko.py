@@ -181,7 +181,8 @@ class Neko(BaseNeko):
 
         return decorator
 
-    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
+    async def build_menu(self, name: str,
+                         obj: Optional[Union[types.Message, types.CallbackQuery, types.InlineQuery]],
                          user_id: Optional[int] = None,
                          callback_data: Optional[Union[str, int]] = None,
                          auto_build: bool = True, lang: Optional[str] = None) -> Optional[Menu]:
@@ -198,15 +199,14 @@ class Neko(BaseNeko):
         if name == 'menu_start':  # Start patch
             name = 'start'
 
+        if obj is None:
+            obj = types.Message(**{'conf': {'neko': self}, 'from': types.User(id=user_id or 1)})
+
         if lang is None:
             lang = await self.storage.get_user_language(user_id=user_id or obj.from_user.id)
         text: Dict[str, Any] = deepcopy(self.text_processor.texts[lang].get(name))
-        if not obj:
-            raise RuntimeError(f'Neither Message nor CallbackQuery was provided during menu building for {name}! '
-                               f'*brain explosion sounds accompanied by intense meowing*')
         if text is None:  # Try to fetch the menu in another language
-            if 'en' in self.text_processor.texts.keys():
-                text = self.text_processor.texts['en'].get(name)
+            text = self.text_processor.texts[self.storage.default_language].get(name)
             if text is None:
                 for language in self.text_processor.texts.keys():
                     text = self.text_processor.texts[language].get(name)
@@ -217,17 +217,11 @@ class Neko(BaseNeko):
                 LOGGER.warning(f'{name} menu does not have {lang} translation, using en.')
             if text is None:
                 raise RuntimeError(f'There is no menu called {name}! *facePAWm*')
-        if text.get('text') is None and text:
-            LOGGER.warning(f'No text provided for {name}. *suspicious stare*')
+        if text and text.get('text') is None and text.get('media') is None:
+            LOGGER.warning(f'No text or media provided for {name}. *suspicious stare*')
 
         text.update(dict(name=name, obj=obj, callback_data=callback_data, bot_token=obj.conf.get('request_token')))
-        args_to_pass: Dict[str, Any] = dict()
-        for key, value in text.items():
-            if key in self.__MENU_ARGS:
-                args_to_pass[key] = value
-            else:
-                LOGGER.warning(f'Field {key} in {name} is extra, it was ignored during Menu initialization.')
-        menu = Menu(**args_to_pass)
+        menu = Menu(**text)
 
         if self._markup_overriders.get(name, dict()).get(lang):
             menu.raw_markup = await self._markup_overriders[name][lang](menu)

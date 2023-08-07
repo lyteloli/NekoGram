@@ -1,7 +1,9 @@
-from typing import Optional, Union, Dict, List, Any, Type
+from typing import Optional, Union, Dict, List, Any, Type, Set
 from contextlib import suppress
-from aiogram import types
+from aiogram import types, exceptions as aiogram_exc
+from io import BytesIO
 
+from .utils import warn_deprecated
 from .base_neko import BaseNeko
 from .logger import LOGGER
 
@@ -10,30 +12,50 @@ class Menu:
     __default_keyboard_values: Dict[str, str] = {'callback_data': 'call_data', 'switch_inline_query': 'query',
                                                  'switch_inline_query_current_chat': 'cc_query',
                                                  'text': 'text', 'url': 'url', 'menu': 'call_data'}
+    __default_menu_values: Dict[str, str] = {'caption': 'text'}
     __inline_markup_identifiers: List[str] = ['call_data', 'callback_data', 'query', 'switch_inline_query', 'cc_query',
                                               'switch_inline_query_current_chat', 'url']
+    __media_extensions: Dict[str, Set[str]] = {
+        'photo': {'jpg', 'jpeg', 'png', 'webp', 'tiff', 'bmp', 'heif', 'svg', 'eps'},
+        'video': {'mpg', 'mp2', 'mpeg', 'mpe', 'mpv', 'ogg', 'mp4', 'm4v', 'avi', 'wmv', 'mov', 'qt', 'flv', 'swf',
+                  'avchd'},
+        'audio': {'3gp', 'aa', 'aac', 'aax', 'act', 'aiff', 'alac', 'amr', 'ape', 'au', 'awb', 'dss', 'dvf', 'flac',
+                  'gsm', 'iklax', 'ivs', 'm4a', 'm4b', 'mmf', 'mp3', 'mpc', 'msv', 'ogg', 'oga', 'mogg', 'opus', 'ra',
+                  'rm', 'rf64', 'sln', 'tta', 'voc', 'vox', 'wav', 'wma', 'wv', '8svx', 'cda'},
+        'animation': {'gif', 'webm'},
+        'document': set()
+    }
+
+    __cached_media: Dict[str, bytes] = dict()
 
     def __init__(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
                  markup: Optional[List[List[Dict[str, str]]]] = None, markup_row_width: Optional[int] = None,
                  text: Optional[str] = None, no_preview: Optional[bool] = None, parse_mode: Optional[str] = None,
                  silent: Optional[bool] = None, validation_error: Optional[str] = None,
-                 extras: Optional[Dict[str, Any]] = None, keyboard_values_to_format: Optional[List[str]] = None,
+                 keyboard_values_to_format: Optional[List[str]] = None,
                  markup_type: Optional[str] = None, prev_menu: Optional[str] = None, next_menu: Optional[str] = None,
                  filters: Optional[List[str]] = None, callback_data: Optional[Union[str, int]] = None,
-                 bot_token: Optional[str] = None, intermediate_menu: Optional[str] = None):
+                 bot_token: Optional[str] = None, intermediate_menu: Optional[str] = None, media: Optional[str] = None,
+                 media_type: Optional[str] = None, media_spoiler: Optional[bool] = None,
+                 protect_content: Optional[bool] = None, **kwargs):
         self.name: str = name
         self.obj: Optional[Union[types.Message, types.CallbackQuery, types.InlineQuery]] = obj
         self.neko: BaseNeko = obj.conf['neko']
         self.markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None
 
         self.text: Optional[str] = text
+        self._init_media: Optional[Union[str, BytesIO]] = media
+        self._media: Optional[Union[str, BytesIO]] = media
+        self._media_type: Optional[str] = media_type
+        self.media_spoiler: Optional[bool] = media_spoiler
+        self.protect_content: Optional[bool] = protect_content
         self.no_preview: Optional[bool] = no_preview
         self.parse_mode: Optional[str] = parse_mode
         self.silent: Optional[bool] = silent
         self.raw_markup: Optional[List[List[Dict[str, str]]]] = markup
         self.markup_row_width: Optional[int] = markup_row_width
         self.validation_error: str = validation_error or 'ValidationError'
-        self.extras: Dict[str, Any] = extras or dict()
+        self.extras: Dict[str, Any] = kwargs.pop('extras', dict())
         self.keyboard_values_to_format = keyboard_values_to_format or list(self.__default_keyboard_values.keys())
         self.markup_type: Optional[str] = markup_type
         self.prev_menu: Optional[str] = prev_menu
@@ -45,8 +67,63 @@ class Menu:
         self.intermediate_menu: Optional[str] = intermediate_menu
         self._break_execution: bool = False
 
+        self.extras.update(kwargs)
+
         if self.bot_token:
             self.bot_id = int(self.bot_token.split(':')[0])
+
+        self.validate_media()
+
+    def validate_media(self):
+        """
+        Validate and process media
+        """
+        if self.media:
+            # Validate media type
+            if self._media_type:
+                self._media_type = self._media_type.lower()
+                if self._media_type not in self.__media_extensions.keys():
+                    raise ValueError(f'{self._media_type} is not a valid media type (defined in {self.name}). '
+                                     f'Valid options: {", ".join(self.__media_extensions.keys())}')
+            else:
+                self._media_type = self.resolve_media_type(self._media)
+
+            if not self._init_media.startswith(('http://', 'https://')):
+                self.resolve_media()
+
+    @classmethod
+    def resolve_media_type(cls, path_or_url: str) -> str:
+        part: str = path_or_url.split('.')[-1].lower().split('?')[0]
+        for key, value in cls.__media_extensions.items():
+            if part in value:
+                return key
+        return 'document'
+
+    def resolve_media(self) -> BytesIO:
+        if not self.__cached_media.get(self._init_media):
+            with open(self._init_media, 'rb') as f:
+                self.__cached_media[self._init_media] = f.read()
+        self._media = BytesIO(self.__cached_media[self._init_media])
+        return self._media
+
+    @property
+    def media(self):
+        return self._media
+
+    @media.setter
+    def media(self, value: Optional[str]):
+        self._init_media = value
+        self._media = value
+        self.validate_media()
+
+    @property
+    def media_type(self):
+        return self._media_type
+
+    @media_type.setter
+    def media_type(self, value: str):
+        self.media_type = value
+        self.validate_media()
 
     def break_execution(self):
         self._break_execution = True
@@ -73,17 +150,25 @@ class Menu:
                 result.append(item)
         return result
 
-    async def send_message(self, user_id: Optional[int] = None) -> types.Message:
+    async def send_message(self, user_id: Optional[int] = None, ignore_media: bool = False) -> types.Message:
         """
         Sends the menu as a message to a user
         :param user_id: Telegram user ID
+        :param ignore_media: Whether to ignore media defined in the menu
         :return: Sent message
         """
         if user_id is None:
             user_id = self.obj.from_user.id
-        msg = await self.obj.bot.send_message(chat_id=user_id, text=self.text,
-                                              parse_mode=self.parse_mode, disable_web_page_preview=self.no_preview,
-                                              disable_notification=self.silent, reply_markup=self.markup)
+        if self.media and not ignore_media:
+            msg = await getattr(self.obj.bot, f'send_{self._media_type}')(**{
+                self._media_type: self.media, 'chat_id': user_id, 'caption': self.text, 'parse_mode': self.parse_mode,
+                'disable_notification': self.silent, 'reply_markup': self.markup,
+                'protect_content': self.protect_content
+            })
+        else:
+            msg = await self.obj.bot.send_message(chat_id=user_id, text=self.text, protect_content=self.protect_content,
+                                                  parse_mode=self.parse_mode, disable_web_page_preview=self.no_preview,
+                                                  disable_notification=self.silent, reply_markup=self.markup)
         if self.neko.delete_messages:
             last_message_id = await self.neko.storage.get_last_message_id(user_id=user_id)
             await self.neko.storage.set_last_message_id(user_id=user_id, message_id=msg.message_id)
@@ -91,17 +176,39 @@ class Menu:
                 await self.obj.bot.delete_message(chat_id=user_id, message_id=last_message_id)
         return msg
 
-    async def edit_text(self) -> types.Message:
+    async def edit_message(self, ignore_media: bool = False) -> types.Message:
         """
-        Edits message text with menu properties
+        Edits message with menu properties
+        :param ignore_media: Whether to ignore media defined in the menu
         :return: Edited message
         """
         obj = self.obj if isinstance(self.obj, types.Message) else self.obj.message
-        msg = await obj.edit_text(text=self.text, parse_mode=self.parse_mode, reply_markup=self.markup,
-                                  disable_web_page_preview=self.no_preview)
+        if self.media:
+            if ignore_media:
+                msg = await obj.edit_caption(caption=self.text, parse_mode=self.parse_mode, reply_markup=self.markup)
+            else:
+                try:
+                    msg = await obj.edit_media(
+                        media=getattr(types, f'InputMedia{self._media_type.capitalize()}')(
+                            media=self.media, caption=self.text, parse_mode=self.parse_mode,
+                            has_spoiler=self.media_spoiler
+                        ),
+                        reply_markup=self.markup
+                    )
+                except aiogram_exc.BadRequest as e:
+                    if str(e) == 'There is no media in the message to edit':
+                        self.resolve_media()
+                    raise e
+        else:
+            msg = await obj.edit_text(text=self.text, parse_mode=self.parse_mode, reply_markup=self.markup,
+                                      disable_web_page_preview=self.no_preview)
         if isinstance(self.obj, types.CallbackQuery):
             await self.neko.storage.set_last_message_id(user_id=self.obj.from_user.id, message_id=msg.message_id)
         return msg
+
+    @warn_deprecated(new_function='edit_message')
+    async def edit_text(self, ignore_media: bool = False) -> types.Message:
+        return await self.edit_message(ignore_media=ignore_media)
 
     def build_inline_query_result_args(self, **kwargs) -> Dict[str, Any]:
         """
@@ -171,14 +278,22 @@ class Menu:
     async def build(self, text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
                     markup_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
                     markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None,
-                    allowed_buttons: List[Union[str, int]] = None):
+                    allowed_buttons: List[Union[str, int]] = None, skip_field_validation: bool = False):
         """
         Build a menu
         :param text_format: Formatting for menu text
         :param markup_format: Formatting for markup buttons
         :param markup: Aiogram markup object
         :param allowed_buttons: In case of access limitation which buttons to display
+        :param skip_field_validation: Whether to skip menu field validation (not recommended)
         """
+
+        if not skip_field_validation:
+            # Validate extras
+            for key, value in self.extras.items():
+                if key in self.__default_menu_values:
+                    setattr(self, self.__default_menu_values[key], value)
+
         if self.text:
             self.text = self._apply_formatting(text_format, self.text)[0]
 

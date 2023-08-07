@@ -58,7 +58,7 @@ async def widget_broadcast_remove_button(data: Menu, call: Union[types.Message, 
 
     data = await neko.build_menu(name='widget_broadcast_post_markup', obj=call)
 
-    await data.edit_text()
+    await data.edit_message()
 
 
 @ROUTER.function()
@@ -119,4 +119,4 @@ async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, type
     await neko.storage.set_user_data(data=user_data, user_id=call.from_user.id, replace=True)
     await data.build(text_format={'total': total, 'attempts': attempts, 'successful': successful,
                                   'failed': failed}, allowed_buttons=[2])
-    await data.edit_text()
+    await data.edit_message()

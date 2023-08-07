@@ -29,16 +29,16 @@ async def menu_callback_query_handler(call: types.CallbackQuery):
         if current_menu.intermediate_menu:  # Show an intermediate menu
             intermediate_menu = await neko.build_menu(name=current_menu.intermediate_menu, obj=call)
             intermediate_menu.markup = None
-            await intermediate_menu.edit_text()
+            await intermediate_menu.edit_message()
         await neko.functions[current_menu.name](current_menu, call, neko)
         return
 
     try:
-        await current_menu.edit_text()
-    except aiogram_exceptions.InlineKeyboardExpected:
+        await current_menu.edit_message()
+    except (aiogram_exceptions.MessageCantBeEdited, aiogram_exceptions.MessageToEditNotFound):
+        await current_menu.send_message()
+    except (aiogram_exceptions.InlineKeyboardExpected, aiogram_exceptions.BadRequest):
         if neko.delete_messages:
             with suppress(Exception):
                 await call.message.delete()
-        await current_menu.send_message()
-    except (aiogram_exceptions.MessageCantBeEdited, aiogram_exceptions.MessageToEditNotFound):
         await current_menu.send_message()
