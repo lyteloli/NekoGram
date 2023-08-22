@@ -182,7 +182,7 @@ class MySQLStorage(BaseStorage):
                     await conn.commit()
 
                     if fetch_all:
-                        return await cursor.fetchall()
+                        return await cursor.fetchall() or []
                     else:
                         result = await cursor.fetchone()
                         return result if result else dict()
