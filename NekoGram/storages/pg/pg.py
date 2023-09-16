@@ -12,8 +12,15 @@ from ...logger import LOGGER
 
 
 class PGStorage(BaseStorage):
-    def __init__(self, database: str, host: str = 'localhost', port: Union[str, int] = 5432,
-                 user: str = 'postgres', password: Optional[str] = None, default_language: str = 'en'):
+    def __init__(
+            self,
+            database: str,
+            host: str = 'localhost',
+            port: Union[str, int] = 5432,
+            user: str = 'postgres',
+            password: Optional[str] = None,
+            default_language: str = 'en'
+    ):
         self.database: str = database
         self.host: str = host
         self.port: Union[str, int] = port
@@ -30,8 +37,9 @@ class PGStorage(BaseStorage):
         :return: True if the pool was successfully created, otherwise False.
         """
         try:
-            self.pool = await asyncpg.pool.create_pool(database=self.database, host=self.host, port=self.port,
-                                                       user=self.user, password=self.password)
+            self.pool = await asyncpg.pool.create_pool(
+                database=self.database, host=self.host, port=self.port, user=self.user, password=self.password
+            )
         except Exception:
             LOGGER.exception('PostgreSQL pool creation failed. *neko things')
             return False
@@ -84,8 +92,9 @@ class PGStorage(BaseStorage):
             except Exception as e:
                 LOGGER.exception(e)
 
-    async def get(self, query: str, args: Union[Tuple[Any, ...], Any] = (), fetch_all: bool = False)\
-            -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
+    async def get(
+            self, query: str, args: Union[Tuple[Any, ...], Any] = (), fetch_all: bool = False
+    ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database.
         :param query: SQL query to execute.
@@ -144,8 +153,9 @@ class PGStorage(BaseStorage):
         user = await self.get('SELECT "data" FROM "nekogram_users" WHERE "id" = $1;', (user_id, ))
         return json.loads(user.get('data', '{}'))
 
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs)\
-            -> Dict[str, Any]:
+    async def set_user_data(
+            self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs
+    ) -> Dict[str, Any]:
         """
         Set user data.
         :param user_id: Telegram ID of the user.
@@ -192,8 +202,9 @@ class PGStorage(BaseStorage):
         user = await self.get('SELECT "last_message_id" FROM "nekogram_users" WHERE "id" = $1;', (user_id, ))
         return user.get('last_message_id')
 
-    async def create_user(self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None) \
-            -> None:
+    async def create_user(
+            self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None
+    ) -> None:
         """
         Create user.
         :param user_id: Telegram ID of the user.
@@ -211,10 +222,24 @@ class PGStorage(BaseStorage):
 
 
 class KittyPGStorage(PGStorage):
-    def __init__(self, database: str, host: str = 'localhost', port: Union[str, int] = 5432,
-                 user: str = 'postgres', password: Optional[str] = None, default_language: str = 'en'):
-        PGStorage.__init__(self, database=database, host=host, port=port, user=user, password=password,
-                           default_language=default_language)
+    def __init__(
+            self,
+            database: str,
+            host: str = 'localhost',
+            port: Union[str, int] = 5432,
+            user: str = 'postgres',
+            password: Optional[str] = None,
+            default_language: str = 'en'
+    ):
+        PGStorage.__init__(
+            self,
+            database=database,
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            default_language=default_language
+        )
 
     async def get_user_data(self, user_id: int, bot_token: Optional[str] = None) -> Union[Dict[str, Any], bool]:
         """
@@ -226,8 +251,13 @@ class KittyPGStorage(PGStorage):
         user = await self.get('SELECT "data" FROM "nekogram_users" WHERE "id" = $1;', (user_id, ))
         return json.loads(user['data']).get(bot_token, {})
 
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False,
-                            bot_token: Optional[str] = None) -> Dict[str, Any]:
+    async def set_user_data(
+            self,
+            user_id: int,
+            data: Optional[Dict[str, Any]] = None,
+            replace: bool = False,
+            bot_token: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Set user data.
         :param user_id: Telegram ID of the user.

@@ -23,8 +23,9 @@ async def menu_callback_query_handler(call: types.CallbackQuery):
     if current_menu is None:
         return
 
-    await neko.storage.set_user_menu(user_id=call.from_user.id, menu=current_menu.name,
-                                     bot_token=call.conf.get('request_token'))
+    await neko.storage.set_user_menu(
+        user_id=call.from_user.id, menu=current_menu.name, bot_token=call.conf.get('request_token')
+    )
     if not current_menu.filters and neko.functions.get(current_menu.name):  # Call function if it doesn't need input
         if current_menu.intermediate_menu:  # Show an intermediate menu
             intermediate_menu = await neko.build_menu(name=current_menu.intermediate_menu, obj=call)

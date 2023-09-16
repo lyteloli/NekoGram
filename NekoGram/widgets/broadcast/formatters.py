@@ -30,12 +30,14 @@ async def widget_broadcast_post_markup(data: Menu, user: User, neko: Neko):
 
         button_index: int = 0
         for button in row:
-            row_buttons.append(InlineKeyboardButton(text=button['text'], callback_data=f'widget_broadcast_remove_button'
-                                                                                       f'#{row_index}-{button_index}'))
+            row_buttons.append(InlineKeyboardButton(
+                text=button['text'], callback_data=f'widget_broadcast_remove_button#{row_index}-{button_index}'
+            ))
             button_index += 1
         if button_index < 3:
-            row_buttons.append(InlineKeyboardButton(text='➕',
-                                                    callback_data=f'widget_broadcast_add_button_step_1#{row_index}'))
+            row_buttons.append(InlineKeyboardButton(
+                text='➕', callback_data=f'widget_broadcast_add_button_step_1#{row_index}'
+            ))
         markup.add(*row_buttons)
         row_index += 1
 

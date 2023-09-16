@@ -8,16 +8,18 @@ from .menus import Menu
 
 class NekoRouter:
     def __init__(self, name: Optional[str] = None):
-        self.functions: Dict[str, Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko],
-                                           Awaitable[Any]]] = dict()
+        self.functions: Dict[str, Callable[
+            [Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Awaitable[Any]
+        ]] = dict()
         self.format_functions: Dict[str, Callable[[Menu, types.User, BaseNeko], Awaitable[Any]]] = dict()
         self.prev_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
         self.next_menu_handlers: Dict[str, Callable[[Menu], Awaitable[str]]] = dict()
         self.name = name
         self._was_attached: bool = False
 
-    def register_formatter(self, callback: Callable[[Menu, types.User, BaseNeko], Awaitable[Any]],
-                           name: Optional[str] = None):
+    def register_formatter(
+            self, callback: Callable[[Menu, types.User, BaseNeko], Awaitable[Any]], name: Optional[str] = None
+    ):
         """
         Register a formatter
         :param callback: A formatter to call
@@ -37,8 +39,11 @@ class NekoRouter:
 
         return decorator
 
-    def register_function(self, callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko],
-                                                   Awaitable[Any]], name: Optional[str] = None):
+    def register_function(
+            self,
+            callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Awaitable[Any]],
+            name: Optional[str] = None
+    ):
         """
         Register a function
         :param callback: A function to call

@@ -11,10 +11,12 @@ async def default_start_handler(message: types.Message):
 
     if not await neko.storage.check_user_exists(user_id=message.from_user.id):
         lang = message.from_user.language_code
-        await neko.storage.create_user(user_id=message.from_user.id,
-                                       language=lang if lang in neko.text_processor.texts.keys()
-                                       else neko.storage.default_language,
-                                       name=message.from_user.full_name, username=message.from_user.username)
+        await neko.storage.create_user(
+            user_id=message.from_user.id,
+            language=lang if lang in neko.text_processor.texts.keys() else neko.storage.default_language,
+            name=message.from_user.full_name,
+            username=message.from_user.username
+        )
     else:  # Reset user data on start
         await neko.storage.set_user_data(user_id=message.from_user.id, bot_token=message.conf.get('request_token'))
 
@@ -39,15 +41,17 @@ async def menu_message_handler(message: types.Message):
         return
 
     bot_token: Optional[str] = message.conf.get('request_token')
-    user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(user_id=message.from_user.id,
-                                                                              bot_token=bot_token)
+    user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(
+        user_id=message.from_user.id, bot_token=bot_token
+    )
     current_menu = await neko.build_menu(name=user_data['menu'], obj=message)  # Prebuild current menu
     if current_menu is None:
         return
 
     if message.text and message.text.startswith('⬅️'):  # Back button clicked
-        await neko.storage.set_user_menu(menu=current_menu.prev_menu or None, user_id=message.from_user.id,
-                                         bot_token=bot_token)
+        await neko.storage.set_user_menu(
+            menu=current_menu.prev_menu or None, user_id=message.from_user.id, bot_token=bot_token
+        )
         if neko.delete_messages:
             last_message_id = await neko.storage.get_last_message_id(user_id=message.from_user.id)
             try:
@@ -82,9 +86,11 @@ async def menu_message_handler(message: types.Message):
         await current_menu.send_message()
         return
     else:
-        user_data = await neko.storage.set_user_data(data={current_menu.name: message.to_python(),
-                                                           'menu': current_menu.next_menu},
-                                                     user_id=message.from_user.id, bot_token=bot_token)
+        user_data = await neko.storage.set_user_data(
+            data={current_menu.name: message.to_python(), 'menu': current_menu.next_menu},
+            user_id=message.from_user.id,
+            bot_token=bot_token
+        )
 
     if neko.functions.get(current_menu.name):  # Execute a function if present
         if current_menu.intermediate_menu:  # Show an intermediate menu

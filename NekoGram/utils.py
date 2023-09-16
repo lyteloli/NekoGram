@@ -1,6 +1,5 @@
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from contextlib import suppress
-from functools import wraps
 from aiogram import types
 from typing import Union
 from io import BytesIO
@@ -65,15 +64,17 @@ async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bo
     data = aiohttp.FormData()
     data.add_field('file', f.read(), filename=f'file.{mime.split("/")[1]}', content_type=mime)
     try:
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False),
-                                         json_serialize=json.dumps) as session:
+        async with aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(ssl=False), json_serialize=json.dumps
+        ) as session:
             async with session.post(url='https://telegra.ph/upload', data=data) as r:
                 r = await r.json()
                 if isinstance(r, dict) and r.get('error'):
                     return False
-                if not r[-1]["src"].startswith('/'):
-                    r[-1]["src"] = '/' + r[-1]["src"]
-                return f'https://telegra.ph{r[-1]["src"]}'
+                item_path: str = r[-1]['src']
+                if not item_path.startswith('/'):
+                    item_path = f'/{item_path}'
+                return f'https://telegra.ph{item_path}'
     except aiohttp.ClientError:
         return False
 
@@ -81,8 +82,9 @@ async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bo
 def warn_deprecated(new_function: str):
     def decorator(callback: callable):
         async def wrapper(*args, **kwargs):
-            LOGGER.warning(f'{callback.__name__} is deprecated and may be removed in future updates, '
-                           f'use {new_function} instead.')
+            LOGGER.warning(
+                f'{callback.__name__} is deprecated and may be removed in future updates, use {new_function} instead.'
+            )
             return await callback(*args, **kwargs)
         return wrapper
     return decorator

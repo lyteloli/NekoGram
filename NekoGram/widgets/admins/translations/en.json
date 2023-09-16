@@ -1,0 +1,33 @@
+{
+  "lang": "en",
+  "widget_admins": {
+    "text": "Here's a list of admins",
+    "markup": [
+      [{"text": "➕Add new", "call_data": "menu_admins_new"}],
+      [{"text": "⬅️Back", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_admins_new": {
+    "text": "Send a Telegram ID of the new admin. Please remember this person will be a super admin and will have same privileges as you do, they will be able to even revoke your status. Grant this status only to people you trust.",
+    "markup": [
+      [{"text": "⬅️Back"}]
+    ],
+    "filters": ["int"],
+    "prev_menu": "menu_admins",
+    "validation_error": "Please enter a valid Telegram ID"
+  },
+  "widget_admins_item": {
+    "text": "Admin\nID: {id}\nName: {full_name}\nUsername: {username}",
+    "markup": [
+      [{"text": "☠️Delete", "call_data": "menu_admins_delete"}],
+      [{"text": "⬅️Back", "call_data": "menu_admins"}]
+    ]
+  },
+  "widget_admins_delete": {
+    "text": "Are you sure you want to revoke rights of this admin?",
+    "markup": [
+      [{"text": "☠️Yes", "call_data": "menu_admins_delete_y"}, {"text": "✅No", "call_data": "menu_admins_item"}]
+    ]
+  },
+  "widget_admins_delete_y": {}
+}

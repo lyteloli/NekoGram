@@ -30,7 +30,7 @@ with NekoGram.
 > Note: Always read the documentation for the release you are using, NekoGram is constantly evolving and newer 
 > releases might be incompatible with older ones.
 
-#### Current major version: 2.1
+#### Current major version: 2.2
 > ⚠️ This version implements changes that may be breaking, do not switch to it with existing projects unless you are 
 > ready to resolve them.
 

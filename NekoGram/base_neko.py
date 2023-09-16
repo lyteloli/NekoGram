@@ -7,15 +7,22 @@ from abc import ABC, abstractmethod
 from .text_processors import BaseProcessor, JSONProcessor
 from .filters import StartsWith, HasMenu, BuiltInFilters
 from .storages import BaseStorage
-from .logger import LOGGER
 from . import handlers
 
 
 class BaseNeko(ABC):
-    def __init__(self, storage: Optional[BaseStorage], token: Optional[str] = None, bot: Optional[Bot] = None,
-                 dp: Optional[Dispatcher] = None, text_processor: Optional[BaseProcessor] = None,
-                 entrypoint: str = 'start', menu_prefixes: Union[List[str]] = 'menu_',
-                 callback_parameters_delimiter: str = '#', delete_messages: bool = True):
+    def __init__(
+            self,
+            storage: Optional[BaseStorage],
+            token: Optional[str] = None,
+            bot: Optional[Bot] = None,
+            dp: Optional[Dispatcher] = None,
+            text_processor: Optional[BaseProcessor] = None,
+            entrypoint: str = 'start',
+            menu_prefixes: Union[List[str]] = 'menu_',
+            callback_parameters_delimiter: str = '#',
+            delete_messages: bool = True
+    ):
         """
         Initialize a Neko
         :param storage: A class that inherits from BaseDatabase class
@@ -59,8 +66,9 @@ class BaseNeko(ABC):
         for f in builtin_filters.to_list:
             self.filters[f] = getattr(builtin_filters, f'is_{f}')
 
-        self.functions: Dict[str, Callable[[Any, Union[types.Message, types.CallbackQuery, types.InlineQuery],
-                                            BaseNeko], Awaitable[Any]]] = dict()
+        self.functions: Dict[str, Callable[
+            [Any, Union[types.Message, types.CallbackQuery, types.InlineQuery],BaseNeko], Awaitable[Any]
+        ]] = dict()
         self.format_functions: Dict[str, Callable[[Any, types.User, BaseNeko], Awaitable[Any]]] = dict()
         self.prev_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()
         self.next_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()
@@ -71,28 +79,30 @@ class BaseNeko(ABC):
    _  __    __        _____             
   / |/ /__ / /_____  / ___/______ ___ _ 
  /    / -_)  '_/ _ \/ (_ / __/ _ `/  ' \
-/_/|_/\__/_/\_\\___/\___/_/  \_,_/_/_/_/''')
+/_/|_/\__/_/\_\\___/\___/_/  \_,_/_/_/_/
+''')
 
     def register_handlers(self):
         """
         Registers default handlers
         """
-        self.dp.register_message_handler(handlers.menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE),
-                                         commands=['start'])
+        self.dp.register_message_handler(
+            handlers.menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE), commands=['start']
+        )
         for menu_prefix in self.menu_prefixes:
             self.dp.register_callback_query_handler(handlers.menu_callback_query_handler, StartsWith(menu_prefix))
         if 'widget_' not in self.menu_prefixes:
             self.dp.register_callback_query_handler(handlers.menu_callback_query_handler, StartsWith('widget_'))
-        self.dp.register_message_handler(handlers.menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE),
-                                         HasMenu(self.storage), content_types=types.ContentType.ANY)
+        self.dp.register_message_handler(
+            handlers.menu_message_handler,
+            ChatTypeFilter(types.ChatType.PRIVATE),
+            HasMenu(self.storage),
+            content_types=types.ContentType.ANY
+        )
 
-    def add_filter(self, name: str, callback: Union[callable, Filter]):
-        if self.filters.get(name):
-            LOGGER.warning(f'Filter named {name} was overridden. *eyes filling with tears*')
-
-        if isinstance(callback, Filter):
-            callback = callback.check
-        self.filters[name] = callback
+    @abstractmethod
+    def attach_filter(self, name: str, callback: Union[callable, Filter]):
+        pass
 
     def remove_filter(self, name: str):
         self.filters.pop(name)
@@ -153,7 +163,12 @@ class BaseNeko(ABC):
         pass
 
     @abstractmethod
-    async def build_menu(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
-                         user_id: Optional[int] = None, callback_data: Optional[Union[str, int]] = None,
-                         auto_build: bool = True):
+    async def build_menu(
+            self,
+            name: str,
+            obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
+            user_id: Optional[int] = None,
+            callback_data: Optional[Union[str, int]] = None,
+            auto_build: bool = True
+    ):
         pass

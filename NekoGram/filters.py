@@ -157,8 +157,10 @@ class BuiltInFilters:
         :return: True if so
         """
         obj = await self._to_message(obj)
-        return obj.text and re.fullmatch(r'http://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:'
-                                         r'[-a-zA-Z0-9()@:%_+.~#?&/=]*)$', obj.text)
+        return obj.text and re.fullmatch(
+            r'http://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$',
+            obj.text
+        )
 
     async def is_https_url(self, obj: Union[Message, CallbackQuery]) -> bool:
         """
@@ -166,8 +168,10 @@ class BuiltInFilters:
         :return: True if so
         """
         obj = await self._to_message(obj)
-        return obj.text and re.fullmatch(r'https://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:'
-                                         r'[-a-zA-Z0-9()@:%_+.~#?&/=]*)$', obj.text)
+        return obj.text and re.fullmatch(
+            r'https://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$',
+            obj.text
+        )
 
     async def is_tg_url(self, obj: Union[Message, CallbackQuery]) -> bool:
         """
@@ -191,8 +195,10 @@ class BuiltInFilters:
         :return: True if so
         """
         obj = await self._to_message(obj)
-        return obj.text and re.fullmatch(r'(http|https|tg)://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:'
-                                         r'[-a-zA-Z0-9()@:%_+.~#?&/=]*)$', obj.text)
+        return obj.text and re.fullmatch(
+            r'(http|https|tg)://[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$',
+            obj.text
+        )
 
     async def is_email(self, obj: Union[Message, CallbackQuery]) -> bool:
         """

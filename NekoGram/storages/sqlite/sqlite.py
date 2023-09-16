@@ -83,8 +83,9 @@ class SQLiteStorage(BaseStorage):
         except Exception:
             pass
 
-    async def get(self, query: str, args: Union[Tuple[Any, ...], Any] = (), fetch_all: bool = False)\
-            -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
+    async def get(
+            self, query: str, args: Union[Tuple[Any, ...], Any] = (), fetch_all: bool = False
+    ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database.
         :param query: SQL query to execute.
@@ -147,8 +148,9 @@ class SQLiteStorage(BaseStorage):
         user = await self.get('SELECT "data" FROM "nekogram_users" WHERE "id" = ?;', (user_id, ))
         return json.loads(user.get('data', '{}'))
 
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs)\
-            -> Dict[str, Any]:
+    async def set_user_data(
+            self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs
+    ) -> Dict[str, Any]:
         """
         Set user data.
         :param user_id: Telegram ID of the user.
@@ -195,8 +197,9 @@ class SQLiteStorage(BaseStorage):
         user = await self.get('SELECT "last_message_id" FROM "nekogram_users" WHERE "id" = ?;', (user_id, ))
         return user.get('last_message_id')
 
-    async def create_user(self, user_id: int, name: str, username: Optional[str] = None,
-                          language: Optional[str] = None) -> None:
+    async def create_user(
+            self, user_id: int, name: str, username: Optional[str] = None, language: Optional[str] = None
+    ) -> None:
         """
         Create user.
         :param user_id: Telegram ID of the user.
@@ -228,8 +231,13 @@ class KittySQLiteStorage(SQLiteStorage):
         user = await self.get('SELECT "data" FROM "nekogram_users" WHERE "id" = ?;', (user_id, ))
         return json.loads(user['data']).get(bot_token, {})
 
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False,
-                            bot_token: Optional[str] = None) -> Dict[str, Any]:
+    async def set_user_data(
+            self,
+            user_id: int,
+            data: Optional[Dict[str, Any]] = None,
+            replace: bool = False,
+            bot_token: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Set user data.
         :param user_id: Telegram ID of the user.

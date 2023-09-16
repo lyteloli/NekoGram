@@ -9,35 +9,65 @@ from .logger import LOGGER
 
 
 class Menu:
-    __default_keyboard_values: Dict[str, str] = {'callback_data': 'call_data', 'switch_inline_query': 'query',
-                                                 'switch_inline_query_current_chat': 'cc_query',
-                                                 'text': 'text', 'url': 'url', 'menu': 'call_data'}
+    __default_keyboard_values: Dict[str, str] = {
+        'callback_data': 'call_data',
+        'switch_inline_query': 'query',
+        'switch_inline_query_current_chat': 'cc_query',
+        'text': 'text',
+        'url': 'url',
+        'menu': 'call_data'
+    }
     __default_menu_values: Dict[str, str] = {'caption': 'text'}
-    __inline_markup_identifiers: List[str] = ['call_data', 'callback_data', 'query', 'switch_inline_query', 'cc_query',
-                                              'switch_inline_query_current_chat', 'url']
+    __inline_markup_identifiers: List[str] = [
+        'call_data',
+        'callback_data',
+        'query',
+        'switch_inline_query',
+        'cc_query',
+        'switch_inline_query_current_chat',
+        'url'
+    ]
     __media_extensions: Dict[str, Set[str]] = {
         'photo': {'jpg', 'jpeg', 'png', 'webp', 'tiff', 'bmp', 'heif', 'svg', 'eps'},
-        'video': {'mpg', 'mp2', 'mpeg', 'mpe', 'mpv', 'ogg', 'mp4', 'm4v', 'avi', 'wmv', 'mov', 'qt', 'flv', 'swf',
-                  'avchd'},
-        'audio': {'3gp', 'aa', 'aac', 'aax', 'act', 'aiff', 'alac', 'amr', 'ape', 'au', 'awb', 'dss', 'dvf', 'flac',
-                  'gsm', 'iklax', 'ivs', 'm4a', 'm4b', 'mmf', 'mp3', 'mpc', 'msv', 'ogg', 'oga', 'mogg', 'opus', 'ra',
-                  'rm', 'rf64', 'sln', 'tta', 'voc', 'vox', 'wav', 'wma', 'wv', '8svx', 'cda'},
+        'video': {
+            'mpg', 'mp2', 'mpeg', 'mpe', 'mpv', 'ogg', 'mp4', 'm4v', 'avi', 'wmv', 'mov', 'qt', 'flv', 'swf', 'avchd'
+        },
+        'audio': {
+            '3gp', 'aa', 'aac', 'aax', 'act', 'aiff', 'alac', 'amr', 'ape', 'au', 'awb', 'dss', 'dvf', 'flac',
+            'gsm', 'iklax', 'ivs', 'm4a', 'm4b', 'mmf', 'mp3', 'mpc', 'msv', 'ogg', 'oga', 'mogg', 'opus', 'ra',
+            'rm', 'rf64', 'sln', 'tta', 'voc', 'vox', 'wav', 'wma', 'wv', '8svx', 'cda'
+        },
         'animation': {'gif', 'webm'},
         'document': set()
     }
 
     __cached_media: Dict[str, bytes] = dict()
 
-    def __init__(self, name: str, obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
-                 markup: Optional[List[List[Dict[str, str]]]] = None, markup_row_width: Optional[int] = None,
-                 text: Optional[str] = None, no_preview: Optional[bool] = None, parse_mode: Optional[str] = None,
-                 silent: Optional[bool] = None, validation_error: Optional[str] = None,
-                 keyboard_values_to_format: Optional[List[str]] = None,
-                 markup_type: Optional[str] = None, prev_menu: Optional[str] = None, next_menu: Optional[str] = None,
-                 filters: Optional[List[str]] = None, callback_data: Optional[Union[str, int]] = None,
-                 bot_token: Optional[str] = None, intermediate_menu: Optional[str] = None, media: Optional[str] = None,
-                 media_type: Optional[str] = None, media_spoiler: Optional[bool] = None,
-                 protect_content: Optional[bool] = None, **kwargs):
+    def __init__(
+            self,
+            name: str,
+            obj: Union[types.Message, types.CallbackQuery, types.InlineQuery],
+            markup: Optional[List[List[Dict[str, str]]]] = None,
+            markup_row_width: Optional[int] = None,
+            text: Optional[str] = None,
+            no_preview: Optional[bool] = None,
+            parse_mode: Optional[str] = None,
+            silent: Optional[bool] = None,
+            validation_error: Optional[str] = None,
+            keyboard_values_to_format: Optional[List[str]] = None,
+            markup_type: Optional[str] = None,
+            prev_menu: Optional[str] = None,
+            next_menu: Optional[str] = None,
+            filters: Optional[List[str]] = None,
+            callback_data: Optional[Union[str, int]] = None,
+            bot_token: Optional[str] = None,
+            intermediate_menu: Optional[str] = None,
+            media: Optional[str] = None,
+            media_type: Optional[str] = None,
+            media_spoiler: Optional[bool] = None,
+            protect_content: Optional[bool] = None,
+            **kwargs
+    ):
         self.name: str = name
         self.obj: Optional[Union[types.Message, types.CallbackQuery, types.InlineQuery]] = obj
         self.neko: BaseNeko = obj.conf['neko']
@@ -83,8 +113,10 @@ class Menu:
             if self._media_type:
                 self._media_type = self._media_type.lower()
                 if self._media_type not in self.__media_extensions.keys():
-                    raise ValueError(f'{self._media_type} is not a valid media type (defined in {self.name}). '
-                                     f'Valid options: {", ".join(self.__media_extensions.keys())}')
+                    raise ValueError(
+                        f'{self._media_type} is not a valid media type (defined in {self.name}). '
+                        f'Valid options: {", ".join(self.__media_extensions.keys())}'
+                    )
             else:
                 self._media_type = self.resolve_media_type(self._media)
 
@@ -161,8 +193,12 @@ class Menu:
             user_id = self.obj.from_user.id
         if self.media and not ignore_media:
             msg = await getattr(self.obj.bot, f'send_{self._media_type}')(**{
-                self._media_type: self.media, 'chat_id': user_id, 'caption': self.text, 'parse_mode': self.parse_mode,
-                'disable_notification': self.silent, 'reply_markup': self.markup,
+                self._media_type: self.media,
+                'chat_id': user_id,
+                'caption': self.text,
+                'parse_mode': self.parse_mode,
+                'disable_notification': self.silent,
+                'reply_markup': self.markup,
                 'protect_content': self.protect_content
             })
         else:
@@ -190,7 +226,9 @@ class Menu:
                 try:
                     msg = await obj.edit_media(
                         media=getattr(types, f'InputMedia{self._media_type.capitalize()}')(
-                            media=self.media, caption=self.text, parse_mode=self.parse_mode,
+                            media=self.media,
+                            caption=self.text,
+                            parse_mode=self.parse_mode,
                             has_spoiler=self.media_spoiler
                         ),
                         reply_markup=self.markup
@@ -200,8 +238,12 @@ class Menu:
                         self.resolve_media()
                     raise e
         else:
-            msg = await obj.edit_text(text=self.text, parse_mode=self.parse_mode, reply_markup=self.markup,
-                                      disable_web_page_preview=self.no_preview)
+            msg = await obj.edit_text(
+                text=self.text,
+                parse_mode=self.parse_mode,
+                reply_markup=self.markup,
+                disable_web_page_preview=self.no_preview
+            )
         if isinstance(self.obj, types.CallbackQuery):
             await self.neko.storage.set_last_message_id(user_id=self.obj.from_user.id, message_id=msg.message_id)
         return msg
@@ -236,10 +278,12 @@ class Menu:
                     return types.InlineKeyboardMarkup
         return types.ReplyKeyboardMarkup
 
-    async def _format_markup(self, markup: Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup],
-                             markup_format: Optional[Union[List[Any], Dict[str, Any], Any]],
-                             allowed_buttons: Optional[List[Union[str, int]]]) -> \
-            Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]:
+    async def _format_markup(
+            self,
+            markup: Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup],
+            markup_format: Optional[Union[List[Any], Dict[str, Any], Any]],
+            allowed_buttons: Optional[List[Union[str, int]]]
+    ) -> Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]:
         """
         Apply markup format
         :param markup: Base markup object
@@ -259,8 +303,11 @@ class Menu:
                     continue  # Button should be ignored
 
                 if button_type == types.InlineKeyboardButton:  # Inline buttons only
-                    for key, value in {'call_data': 'callback_data', 'query': 'switch_inline_query',
-                                       'cc_query': 'switch_inline_query_current_chat'}.items():  # Apply aliases
+                    for key, value in {
+                        'call_data': 'callback_data',
+                        'query': 'switch_inline_query',
+                        'cc_query': 'switch_inline_query_current_chat'
+                    }.items():  # Apply aliases
                         if button.get(key) is not None:
                             button[value] = button.pop(key)
 
@@ -275,10 +322,14 @@ class Menu:
             markup.add(*buttons)
         return markup
 
-    async def build(self, text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
-                    markup_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
-                    markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None,
-                    allowed_buttons: List[Union[str, int]] = None, skip_field_validation: bool = False):
+    async def build(
+            self,
+            text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
+            markup_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
+            markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None,
+            allowed_buttons: List[Union[str, int]] = None,
+            skip_field_validation: bool = False
+    ):
         """
         Build a menu
         :param text_format: Formatting for menu text
@@ -329,8 +380,10 @@ class Menu:
             del self.raw_markup[x]
         if offset >= limit and found > limit:
             # Add previous and next buttons
-            self.raw_markup.append([{'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'},
-                                    {'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}])
+            self.raw_markup.append([
+                {'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'},
+                {'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}
+            ])
         elif offset >= limit:
             self.raw_markup.append([{'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'}])
         elif found > limit:

@@ -1,0 +1,33 @@
+{
+  "lang": "ru",
+  "widget_admins": {
+    "text": "Вот список администраторов",
+    "markup": [
+      [{"text": "➕Добавить", "call_data": "menu_admins_new"}],
+      [{"text": "⬅️Назад", "call_data": "menu_start"}]
+    ]
+  },
+  "widget_admins_new": {
+    "text": "Отправь Telegram ID нового администратора. Помни что этот человек станет администратором и будет иметь права идентичные твоим, он даже сможет аннулировать твои права. Давай данные права только доверенным людям.",
+    "markup": [
+      [{"text": "⬅️Назад"}]
+    ],
+    "filters": ["int"],
+    "prev_menu": "menu_admins",
+    "validation_error": "Введи валидный Telegram ID"
+  },
+  "widget_admins_item": {
+    "text": "Администратор\nID: {id}\nИмя: {full_name}\nИмя пользователя: {username}",
+    "markup": [
+      [{"text": "☠️Удалить", "call_data": "menu_admins_delete"}],
+      [{"text": "⬅️Назад", "call_data": "menu_admins"}]
+    ]
+  },
+  "widget_admins_delete": {
+    "text": "Точно хочешь аннулировать права администратора?",
+    "markup": [
+      [{"text": "☠️Да", "call_data": "menu_admins_delete_y"}, {"text": "✅Нет", "call_data": "menu_admins_item"}]
+    ]
+  },
+  "widget_admins_delete_y": {}
+}

@@ -6,8 +6,9 @@ from .base_neko import BaseNeko
 
 class KittyExecutor(Executor):
     def __init__(self, neko: BaseNeko, skip_updates=None, check_ip=False, retry_after=None, loop=None):
-        super().__init__(dispatcher=neko.dp, skip_updates=skip_updates, check_ip=check_ip, retry_after=retry_after,
-                         loop=loop)
+        super().__init__(
+            dispatcher=neko.dp, skip_updates=skip_updates, check_ip=check_ip, retry_after=retry_after, loop=loop
+        )
         self.neko: BaseNeko = neko
 
 

@@ -1,0 +1,9 @@
+{
+  "nekogram_admins": {
+    "id": {"Field": "id", "Type": "bigint(20)", "Null": "NO", "Key": "PRI", "Default": null, "Extra": "",
+      "struct": "`id` bigint(20) NOT NULL PRIMARY KEY"},
+    "_extras": [
+      "ALTER TABLE `nekogram_admins` ADD CONSTRAINT `nekogram_admins_ibfk_1` FOREIGN KEY (`id`) REFERENCES `nekogram_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;"
+    ]
+  }
+}

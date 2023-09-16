@@ -20,8 +20,15 @@ from ...logger import LOGGER
 
 
 class MySQLStorage(BaseStorage):
-    def __init__(self, database: str, host: str = 'localhost', port: int = 3306, user: str = 'root',
-                 password: Optional[str] = None, default_language: str = 'en'):
+    def __init__(
+            self,
+            database: str,
+            host: str = 'localhost',
+            port: int = 3306,
+            user: str = 'root',
+            password: Optional[str] = None,
+            default_language: str = 'en'
+    ):
         """
         Initialize database
         :param database: Database name
@@ -50,8 +57,9 @@ class MySQLStorage(BaseStorage):
         structure = self._table_structs[table]
         if isinstance(r, list):  # Table exists
             r: Dict[str, Dict[str, Optional[str]]] = {x['Field']: x for x in r}
-            table_struct: Dict[str, Dict[str, Optional[str]]] = {x['Field']: x for x in structure.values()
-                                                                 if not isinstance(x, list)}
+            table_struct: Dict[str, Dict[str, Optional[str]]] = {
+                x['Field']: x for x in structure.values() if not isinstance(x, list)
+            }
             for key, value in table_struct.items():
                 sql_code = value['struct']
                 value.pop('struct')
@@ -65,8 +73,9 @@ class MySQLStorage(BaseStorage):
         else:  # Table does not exist
             LOGGER.warning(f'Table {table} required by {required_by} does not exist, creating..')
             fields = ','.join([f['struct'] for f in structure.values() if not isinstance(f, list)])
-            await self.apply(f'CREATE TABLE {table} ({fields}) '
-                             f'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;')
+            await self.apply(
+                f'CREATE TABLE {table} ({fields}) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;'
+            )
 
         if structure.get('_extras'):
             for i in structure['_extras']:
@@ -78,14 +87,17 @@ class MySQLStorage(BaseStorage):
             await self.verify_table(table=table, required_by=required_by)
 
     async def _verify(self) -> None:
-        connection = await aiomysql.connect(host=self.host, user=self.user, password=self.password, port=self.port,
-                                            client_flag=CLIENT.MULTI_STATEMENTS)
+        connection = await aiomysql.connect(
+            host=self.host, user=self.user, password=self.password, port=self.port, client_flag=CLIENT.MULTI_STATEMENTS
+        )
         async with connection.cursor(DictCursor) as cursor:
             await cursor.execute('SHOW DATABASES LIKE %s', self.database)
             if not await cursor.fetchone():
                 LOGGER.warning(f'MySQL database {self.database} does not exist, creating..')
-                await cursor.execute(f'CREATE DATABASE IF NOT EXISTS {self.database} DEFAULT CHARACTER SET '
-                                     f'utf8mb4 COLLATE utf8mb4_unicode_ci')
+                await cursor.execute(
+                    f'CREATE DATABASE IF NOT EXISTS {self.database} DEFAULT CHARACTER '
+                    f'SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+                )
                 await connection.commit()
         connection.close()
 
@@ -99,8 +111,9 @@ class MySQLStorage(BaseStorage):
             with suppress(Exception):
                 self.pool.close()
 
-        self.pool = await aiomysql.create_pool(host=self.host, port=self.port, user=self.user,
-                                               password=self.password, db=self.database)
+        self.pool = await aiomysql.create_pool(
+            host=self.host, port=self.port, user=self.user, password=self.password, db=self.database
+        )
         LOGGER.info('Verifying table structures, hold tight..')
         await self.verify_table(table='nekogram_users', required_by='NekoGram')
         LOGGER.info('MySQLStorage initialized successfully. ~nya')
@@ -117,8 +130,9 @@ class MySQLStorage(BaseStorage):
             return False
         return True
 
-    async def apply(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
-                    ignore_errors: bool = False) -> int:
+    async def apply(
+            self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (), ignore_errors: bool = False
+    ) -> int:
         """
         Executes SQL query and returns the number of affected rows
         :param query: SQL query to execute
@@ -142,8 +156,9 @@ class MySQLStorage(BaseStorage):
                 else:
                     return cursor.rowcount
 
-    async def select(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()) -> \
-            AsyncGenerator[Dict[str, Any], None]:
+    async def select(
+            self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()
+    ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Generator that yields rows
         :param query: SQL query to execute
@@ -165,8 +180,9 @@ class MySQLStorage(BaseStorage):
                 except mysql_errors.Error:
                     pass
 
-    async def get(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
-                  fetch_all: bool = False) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
+    async def get(
+            self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (), fetch_all: bool = False
+    ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database
         :param query: SQL query to execute
@@ -225,8 +241,9 @@ class MySQLStorage(BaseStorage):
         """
         lang = await self.get_cached_user_language(user_id=user_id)
         if lang is None:
-            lang = (await self.get('SELECT lang FROM nekogram_users WHERE id = %s',
-                                   user_id)).get('lang', self.default_language)
+            lang = (
+                await self.get('SELECT lang FROM nekogram_users WHERE id = %s', user_id)
+            ).get('lang', self.default_language)
         await super().set_user_language(user_id=user_id, language=lang)
         return lang
 
@@ -238,8 +255,9 @@ class MySQLStorage(BaseStorage):
         """
         return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data'])
 
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
-                            replace: bool = False, **kwargs) -> Dict[str, Any]:
+    async def set_user_data(
+            self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs
+    ) -> Dict[str, Any]:
         """
         Set user data
         :param user_id: Telegram ID of the user
@@ -283,8 +301,9 @@ class MySQLStorage(BaseStorage):
         :param user_id: Telegram ID of the user.
         :return: Telegram ID of the message if was set, otherwise None.
         """
-        return (await self.get('SELECT last_message_id FROM nekogram_users WHERE id = %s',
-                               user_id)).get('last_message_id')
+        return (
+            await self.get('SELECT last_message_id FROM nekogram_users WHERE id = %s', user_id)
+        ).get('last_message_id')
 
     async def create_user(self, user_id: int, name: str, username: Optional[str] = None,
                           language: Optional[str] = None) -> None:
@@ -299,15 +318,31 @@ class MySQLStorage(BaseStorage):
         if language is None:
             language = self.default_language
 
-        await self.apply('INSERT INTO nekogram_users (id, lang, full_name, username) VALUES (%s, %s, %s, %s)',
-                         (user_id, language, name, username))
+        await self.apply(
+            'INSERT INTO nekogram_users (id, lang, full_name, username) VALUES (%s, %s, %s, %s)',
+            (user_id, language, name, username)
+        )
 
 
 class KittyMySQLStorage(MySQLStorage):
-    def __init__(self, database: str, host: str = 'localhost', port: int = 3306, user: str = 'root',
-                 password: Optional[str] = None, default_language: str = 'en'):
-        MySQLStorage.__init__(self, database=database, host=host, port=port, user=user, password=password,
-                              default_language=default_language)
+    def __init__(
+            self,
+            database: str,
+            host: str = 'localhost',
+            port: int = 3306,
+            user: str = 'root',
+            password: Optional[str] = None,
+            default_language: str = 'en'
+    ):
+        MySQLStorage.__init__(
+            self,
+            database=database,
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            default_language=default_language
+        )
 
     async def get_user_data(self, user_id: int, bot_token: Optional[str] = None) -> Union[Dict[str, Any], bool]:
         """
@@ -316,11 +351,17 @@ class KittyMySQLStorage(MySQLStorage):
         :param bot_token: Token of the current bot
         :return: Decoded JSON user data
         """
-        return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s',
-                                          user_id))['data']).get(bot_token, dict())
+        return json.loads(
+            (await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data']
+        ).get(bot_token, dict())
 
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None,
-                            replace: bool = False, bot_token: Optional[str] = None) -> Dict[str, Any]:
+    async def set_user_data(
+            self,
+            user_id: int,
+            data: Optional[Dict[str, Any]] = None,
+            replace: bool = False,
+            bot_token: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Set user data.
         :param user_id: Telegram ID of the user.

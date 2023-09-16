@@ -70,8 +70,9 @@ async def widget_broadcast_add_button_step_2(_: Menu, message: Union[types.Messa
     post_markup: List[List[Dict[str, str]]] = user_data.get('widget_broadcast_post_markup', [])
     if len(post_markup) == row_index:
         post_markup.append([])
-    post_markup[row_index].append({'text': user_data['widget_broadcast_add_button_step_1']['text'],
-                                   'url': message.text})
+    post_markup[row_index].append({
+        'text': user_data['widget_broadcast_add_button_step_1']['text'], 'url': message.text
+    })
     user_data['widget_broadcast_post_markup'] = post_markup
     user_data.pop('widget_broadcast_post_row_index')
     user_data.pop('menu')
@@ -109,14 +110,16 @@ async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, type
             await sleep(.2)
 
         if attempts % 5 == 0:
-            await call.message.edit_text(text=data.text.format(total=total, attempts=attempts,
-                                                               successful=successful, failed=failed))
+            await call.message.edit_text(text=data.text.format(
+                total=total, attempts=attempts, successful=successful, failed=failed
+            ))
 
     for key in user_data.copy().keys():
         if key.startswith('widget_broadcast'):
             user_data.pop(key)
     user_data.pop('menu')
     await neko.storage.set_user_data(data=user_data, user_id=call.from_user.id, replace=True)
-    await data.build(text_format={'total': total, 'attempts': attempts, 'successful': successful,
-                                  'failed': failed}, allowed_buttons=[2])
+    await data.build(text_format={
+        'total': total, 'attempts': attempts, 'successful': successful, 'failed': failed
+    }, allowed_buttons=[2])
     await data.edit_message()
