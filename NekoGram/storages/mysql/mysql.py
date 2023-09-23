@@ -131,7 +131,10 @@ class MySQLStorage(BaseStorage):
         return True
 
     async def apply(
-            self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (), ignore_errors: bool = False
+            self,
+            query: str,
+            args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
+            ignore_errors: bool = False
     ) -> int:
         """
         Executes SQL query and returns the number of affected rows
@@ -157,7 +160,9 @@ class MySQLStorage(BaseStorage):
                     return cursor.rowcount
 
     async def select(
-            self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()
+            self,
+            query: str,
+            args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Generator that yields rows
@@ -181,7 +186,10 @@ class MySQLStorage(BaseStorage):
                     pass
 
     async def get(
-            self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (), fetch_all: bool = False
+            self,
+            query: str,
+            args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
+            fetch_all: bool = False
     ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database
@@ -256,7 +264,11 @@ class MySQLStorage(BaseStorage):
         return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data'])
 
     async def set_user_data(
-            self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs
+            self,
+            user_id: int,
+            data: Optional[Dict[str, Any]] = None,
+            replace: bool = False,
+            **kwargs
     ) -> Dict[str, Any]:
         """
         Set user data
@@ -305,8 +317,13 @@ class MySQLStorage(BaseStorage):
             await self.get('SELECT last_message_id FROM nekogram_users WHERE id = %s', user_id)
         ).get('last_message_id')
 
-    async def create_user(self, user_id: int, name: str, username: Optional[str] = None,
-                          language: Optional[str] = None) -> None:
+    async def create_user(
+            self,
+            user_id: int,
+            name: str,
+            username: Optional[str] = None,
+            language: Optional[str] = None
+    ) -> None:
         """
         Create user.
         :param user_id: Telegram ID of the user.

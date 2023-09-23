@@ -93,7 +93,10 @@ class PGStorage(BaseStorage):
                 LOGGER.exception(e)
 
     async def get(
-            self, query: str, args: Union[Tuple[Any, ...], Any] = (), fetch_all: bool = False
+            self,
+            query: str,
+            args: Union[Tuple[Any, ...], Any] = (),
+            fetch_all: bool = False
     ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database.
@@ -154,7 +157,11 @@ class PGStorage(BaseStorage):
         return json.loads(user.get('data', '{}'))
 
     async def set_user_data(
-            self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False, **kwargs
+            self,
+            user_id: int,
+            data: Optional[Dict[str, Any]] = None,
+            replace: bool = False,
+            **kwargs
     ) -> Dict[str, Any]:
         """
         Set user data.
@@ -203,7 +210,11 @@ class PGStorage(BaseStorage):
         return user.get('last_message_id')
 
     async def create_user(
-            self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None
+            self,
+            user_id: int,
+            name: str,
+            username: Optional[str],
+            language: Optional[str] = None
     ) -> None:
         """
         Create user.

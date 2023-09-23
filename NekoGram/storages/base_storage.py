@@ -10,7 +10,9 @@ class BaseStorage(ABC):
 
     @abstractmethod
     async def set_user_language(self, user_id: int, language: str) -> None:
-        self._cached_user_languages[str(user_id)] = {'date': datetime.now(), 'lang': language}
+        self._cached_user_languages[str(user_id)] = {
+            'date': datetime.now(), 'lang': language
+        }
 
     @abstractmethod
     async def get_user_language(self, user_id: int) -> str:
@@ -23,8 +25,13 @@ class BaseStorage(ABC):
             return self._cached_user_languages[user_id]['lang']
 
     @abstractmethod
-    async def set_user_data(self, user_id: int, data: Optional[Dict[str, Any]] = None, replace: bool = False,
-                            bot_token: Optional[str] = None) -> Dict[str, Any]:
+    async def set_user_data(
+            self,
+            user_id: int,
+            data: Optional[Dict[str, Any]] = None,
+            replace: bool = False,
+            bot_token: Optional[str] = None
+    ) -> Dict[str, Any]:
         pass
 
     @abstractmethod
@@ -52,22 +59,38 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def create_user(self, user_id: int, name: str, username: Optional[str], language: Optional[str] = None)\
-            -> None:
+    async def create_user(
+            self,
+            user_id: int,
+            name: str,
+            username: Optional[str],
+            language: Optional[str] = None
+    ) -> None:
         pass
 
     @abstractmethod
-    async def apply(self, query, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (), ignore_errors: bool = False)\
-            -> int:
+    async def apply(
+            self,
+            query,
+            args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
+            ignore_errors: bool = False
+    ) -> int:
         pass
 
-    async def select(self, query, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ())\
-            -> AsyncGenerator[Dict[str, Any], None]:
+    async def select(
+            self,
+            query,
+            args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()
+    ) -> AsyncGenerator[Dict[str, Any], None]:
         yield
 
     @abstractmethod
-    async def get(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (), fetch_all: bool = False)\
-            -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
+    async def get(
+            self,
+            query: str,
+            args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
+            fetch_all: bool = False
+    ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         pass
 
     @abstractmethod
