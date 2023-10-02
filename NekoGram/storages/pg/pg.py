@@ -1,5 +1,10 @@
 from typing import Union, Optional, Dict, Any, List, Tuple, AsyncGenerator
-import asyncpg
+
+try:
+    import asyncpg
+except ImportError:
+    raise ImportError('Install asyncpg to use PGStorage!')
+
 import os
 
 try:
@@ -88,7 +93,7 @@ class PGStorage(BaseStorage):
         async with self.pool.acquire() as connection:
             try:
                 for record in await connection.fetch(query, *self._verify_args(args)):
-                    yield dict(record)
+                    yield self._AttrDict(record)
             except Exception as e:
                 LOGGER.exception(e)
 
@@ -96,13 +101,15 @@ class PGStorage(BaseStorage):
             self,
             query: str,
             args: Union[Tuple[Any, ...], Any] = (),
-            fetch_all: bool = False
+            fetch_all: bool = False,
+            use_attr_dict: bool = True
     ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database.
         :param query: SQL query to execute.
         :param args: Arguments passed to the SQL query.
         :param fetch_all: Set True if you need a list of rows instead of just a single row.
+        :param use_attr_dict: Whether to use dict or AttrDict for fetched rows, is relevant with fetch_all=True only.
         :return: A row or a list or rows.
         """
         async with self.pool.acquire() as connection:
@@ -112,6 +119,8 @@ class PGStorage(BaseStorage):
                 LOGGER.exception(e)
                 return False
         if fetch_all:
+            if use_attr_dict:
+                return [self._AttrDict(x) for x in records]
             return records
         return records[0] if len(records) else dict()
 

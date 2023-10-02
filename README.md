@@ -6,8 +6,8 @@
 ![](docs/nekogram-white.png)
 
 ## Overview
-NekoGram is a JSON-processing layer framework over AIOGram, that makes bot development easier, faster and makes the 
-code a lot more readable.
+NekoGram is a data serialization format (JSON/YAML) processing layer framework over AIOGram, that makes bot 
+development easier, faster and makes the code a lot more readable.
 
 Its main features include:
 - Multistep menus.
@@ -54,7 +54,15 @@ pip install aiomysql
 ```
 PostgreSQL storage dependencies:
 ```
-pip install aiopg
+pip install asyncpg
+```
+SQLite storage dependencies:
+```
+pip install aiosqlite
+```
+YAMLProcessor text processor dependencies:
+```
+pip install pyyaml
 ```
 
 ## Structure, brief introduction and a bit of theory
@@ -88,8 +96,8 @@ and "call_data" field which defines the callback your app will get once the butt
 understand which menu our user wants to go to.
 
 #### How to define Menus?
-For now NekoGram supports only JSON Menus, but you may override BaseProcessor text processor class to make it support 
-more formats, if you plan to do so, please share it with others by submitting a pull request!
+For now NekoGram supports only JSON and YAML Menus, but you may override BaseProcessor text processor class to make it 
+support more formats, if you decide to do so, please share it with others by submitting a pull request!
 You may put the translation files anywhere and anyhow you want, though it is recommended to store them in a 
 "translations" folder under the root folder of your app. 
 Each file must have an [IETF language tag](https://en.wikipedia.org/wiki/IETF_language_tag) defined like this: 
@@ -117,8 +125,8 @@ lower-level AIOGram handlers if you need to handle something NekoGram cannot.
 ##### Update flow
 When we have an update that should be handled we have a couple options (refer to the schema above). 
 In any case a Menu object is being constructed in the first place. 
-This object is a class representing your JSON-defined menu. 
-It contains all the data from JSON file and a few useful methods.
+This object is a class representing your menu defined in JSON/YAML. 
+It contains all the data from JSON/YAML file and a few useful methods.
 
 #### What is called a Formatter?
 Formatters are crucial part of NekoGram since they allow you to replace placeholders in your Menus with useful 

@@ -1,4 +1,4 @@
-from typing import Union, Optional, Dict, Any, AsyncGenerator, List, Tuple
+from typing import Union, Optional, Dict, Any, AsyncGenerator, List, Tuple, Iterable
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 
@@ -81,7 +81,7 @@ class BaseStorage(ABC):
             self,
             query,
             args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[Union[Dict[str, Any], '_AttrDict'], None]:
         yield
 
     @abstractmethod
@@ -89,8 +89,9 @@ class BaseStorage(ABC):
             self,
             query: str,
             args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
-            fetch_all: bool = False
-    ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
+            fetch_all: bool = False,
+            use_attr_dict: bool = True
+    ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any], '_AttrDict']:
         pass
 
     @abstractmethod
@@ -113,3 +114,21 @@ class BaseStorage(ABC):
         if not isinstance(args, (tuple, dict)):
             args = (args,)
         return args
+
+    class _AttrDict(dict):
+        def __dir__(self) -> Iterable[str]:
+            return list(super().__dir__()) + [str(k) for k in self.keys()]
+
+        def __getattr__(self, item: str) -> Any:
+            if item in self:
+                return self[item]
+            raise AttributeError(f'type object \'AttrDict\' has no attribute \'{item}\'')
+
+        def __getattribute__(self, item: str) -> Any:
+            try:
+                return super().__getattribute__(item)
+            except AttributeError:
+                return self.__getattr__(item)
+
+        def __setattr__(self, key: str, value: Any):
+            self[key] = value

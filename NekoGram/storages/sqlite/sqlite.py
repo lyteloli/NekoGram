@@ -1,5 +1,10 @@
 from typing import Union, Optional, Dict, Any, List, Tuple, AsyncGenerator
-import aiosqlite
+
+try:
+    import aiosqlite
+except ImportError:
+    raise ImportError('Install aiosqlite to use SQLiteStorage!')
+
 import os
 
 try:
@@ -77,7 +82,7 @@ class SQLiteStorage(BaseStorage):
             while True:
                 item = await cursor.fetchone()
                 if item:
-                    yield dict(item)
+                    yield self._AttrDict(item)
                 else:
                     break
         except Exception:
@@ -87,13 +92,15 @@ class SQLiteStorage(BaseStorage):
             self,
             query: str,
             args: Union[Tuple[Any, ...], Any] = (),
-            fetch_all: bool = False
+            fetch_all: bool = False,
+            use_attr_dict: bool = True
     ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get a single row or a list of rows from the database.
         :param query: SQL query to execute.
         :param args: Arguments passed to the SQL query.
         :param fetch_all: Set True if you need a list of rows instead of just a single row.
+        :param use_attr_dict: Whether to use dict or AttrDict for fetched rows, is relevant with fetch_all=True only.
         :return: A row or a list or rows.
         """
         try:
@@ -102,9 +109,11 @@ class SQLiteStorage(BaseStorage):
             LOGGER.exception(e)
             return False
         if fetch_all:
+            if use_attr_dict:
+                return [self._AttrDict(row) for row in await cursor.fetchall()]
             return [dict(row) for row in await cursor.fetchall()]
         result: aiosqlite.Row = await cursor.fetchone()
-        return dict(result) if result else {}
+        return self._AttrDict(result) if result else {}
 
     async def check(self, query: str, args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()) -> int:
         """

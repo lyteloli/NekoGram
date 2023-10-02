@@ -1,14 +1,15 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
-from pymysql import err as mysql_errors
-from pymysql.constants import CLIENT
-from contextlib import suppress
-import aiomysql
-import os
 
 try:
     from aiomysql.cursors import DictCursor
 except ImportError:
     raise ImportError('Install aiomysql to use MySQLStorage!')
+
+from pymysql import err as mysql_errors
+from pymysql.constants import CLIENT
+from contextlib import suppress
+import aiomysql
+import os
 
 try:
     import ujson as json
@@ -30,12 +31,12 @@ class MySQLStorage(BaseStorage):
             default_language: str = 'en'
     ):
         """
-        Initialize database
-        :param database: Database name
-        :param host: Database host
-        :param port: Database port
-        :param user: Database user
-        :param password: Database password
+        Initialize database.
+        :param database: Database name.
+        :param host: Database host.
+        :param port: Database port.
+        :param user: Database user.
+        :param password: Database password.
         """
 
         self.pool: Optional[aiomysql.Pool] = None
@@ -103,7 +104,7 @@ class MySQLStorage(BaseStorage):
 
     async def acquire_pool(self) -> bool:
         """
-        Creates a new MySQL pool
+        Creates a new MySQL pool.
         """
         LOGGER.info('Verifying database existence..')
         await self._verify()
@@ -137,11 +138,11 @@ class MySQLStorage(BaseStorage):
             ignore_errors: bool = False
     ) -> int:
         """
-        Executes SQL query and returns the number of affected rows
-        :param query: SQL query to execute
-        :param args: Arguments passed to the SQL query
-        :param ignore_errors: Whether to ignore errors (recommended for internal usage only)
-        :return: Number of affected rows
+        Executes SQL query and returns the number of affected rows.
+        :param query: SQL query to execute.
+        :param args: Arguments passed to the SQL query.
+        :param ignore_errors: Whether to ignore errors (recommended for internal usage only).
+        :return: Number of affected rows.
         """
         args = self._verify_args(args)
         async with self.pool.acquire() as conn:
@@ -165,10 +166,10 @@ class MySQLStorage(BaseStorage):
             args: Union[Tuple[Any, ...], Dict[str, Any], Any] = ()
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        Generator that yields rows
-        :param query: SQL query to execute
-        :param args: Arguments passed to the SQL query
-        :return: Yields rows one by one
+        Generator that yields rows.
+        :param query: SQL query to execute.
+        :param args: Arguments passed to the SQL query.
+        :return: Yields rows one by one.
         """
         args = self._verify_args(args)
         async with self.pool.acquire() as conn:
@@ -179,7 +180,7 @@ class MySQLStorage(BaseStorage):
                     while True:
                         item = await cursor.fetchone()
                         if item:
-                            yield item
+                            yield self._AttrDict(item)
                         else:
                             break
                 except mysql_errors.Error:
@@ -189,14 +190,16 @@ class MySQLStorage(BaseStorage):
             self,
             query: str,
             args: Union[Tuple[Any, ...], Dict[str, Any], Any] = (),
-            fetch_all: bool = False
+            fetch_all: bool = False,
+            use_attr_dict: bool = True
     ) -> Union[bool, List[Dict[str, Any]], Dict[str, Any]]:
         """
-        Get a single row or a list of rows from the database
-        :param query: SQL query to execute
-        :param args: Arguments passed to the SQL query
-        :param fetch_all: Set True if you need a list of rows instead of just a single row
-        :return: A row or a list or rows
+        Get a single row or a list of rows from the database.
+        :param query: SQL query to execute.
+        :param args: Arguments passed to the SQL query.
+        :param fetch_all: Set True if you need a list of rows instead of just a single row.
+        :param use_attr_dict: Whether to use dict or AttrDict for fetched rows, is relevant with fetch_all=True only.
+        :return: A row or a list or rows.
         """
         args = self._verify_args(args)
         async with self.pool.acquire() as conn:
@@ -206,10 +209,12 @@ class MySQLStorage(BaseStorage):
                     await conn.commit()
 
                     if fetch_all:
+                        if use_attr_dict:
+                            return [self._AttrDict(x) for x in await cursor.fetchall() or []]
                         return await cursor.fetchall() or []
                     else:
-                        result = await cursor.fetchone()
-                        return result if result else dict()
+                        result = self._AttrDict(await cursor.fetchone())
+                        return result or dict()
                 except mysql_errors.Error:
                     return False
 
@@ -233,19 +238,19 @@ class MySQLStorage(BaseStorage):
 
     async def set_user_language(self, user_id: int, language: str) -> None:
         """
-        Get user's language
-        :param user_id: Telegram ID of the user
-        :param language: User's language to be set
-        :return: None
+        Get user's language.
+        :param user_id: Telegram ID of the user.
+        :param language: User's language to be set.
+        :return: None.
         """
         await super().set_user_language(user_id=user_id, language=language)
         await self.apply('UPDATE nekogram_users SET lang = %s WHERE id = %s', (language, user_id))
 
     async def get_user_language(self, user_id: int) -> str:
         """
-        Get user's language
-        :param user_id: Telegram ID of the user
-        :return: User's language
+        Get user's language.
+        :param user_id: Telegram ID of the user.
+        :return: User's language.
         """
         lang = await self.get_cached_user_language(user_id=user_id)
         if lang is None:
@@ -257,9 +262,9 @@ class MySQLStorage(BaseStorage):
 
     async def get_user_data(self, user_id: int, **kwargs) -> Union[Dict[str, Any], bool]:
         """
-        Get user data
-        :param user_id: Telegram ID of the user
-        :return: Decoded JSON user data
+        Get user data.
+        :param user_id: Telegram ID of the user.
+        :return: Decoded JSON user data.
         """
         return json.loads((await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data'])
 
@@ -272,10 +277,10 @@ class MySQLStorage(BaseStorage):
     ) -> Dict[str, Any]:
         """
         Set user data
-        :param user_id: Telegram ID of the user
-        :param data: User data
-        :param replace: Replace user data with `data` if replace=True, otherwise merge existing with `data`
-        :return: Decoded JSON user data
+        :param user_id: Telegram ID of the user.
+        :param data: User data.
+        :param replace: Replace user data with `data` if replace=True, otherwise merge existing with `data`.
+        :return: Decoded JSON user data.
         """
         if data is None:
             data = dict()
@@ -363,10 +368,10 @@ class KittyMySQLStorage(MySQLStorage):
 
     async def get_user_data(self, user_id: int, bot_token: Optional[str] = None) -> Union[Dict[str, Any], bool]:
         """
-        Get user data
-        :param user_id: Telegram ID of the user
-        :param bot_token: Token of the current bot
-        :return: Decoded JSON user data
+        Get user data.
+        :param user_id: Telegram ID of the user.
+        :param bot_token: Token of the current bot.
+        :return: Decoded JSON user data.
         """
         return json.loads(
             (await self.get('SELECT data FROM nekogram_users WHERE id = %s', user_id))['data']

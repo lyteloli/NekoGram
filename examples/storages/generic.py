@@ -11,13 +11,15 @@ db: SQLiteStorage = SQLiteStorage(':memory:')
 # db: PGStorage = PGStorage(database='database', user='postgres', password='password', host='localhost', port=5432)
 
 
-async def amain():
+async def main():
     assert await db.acquire_pool()
 
     total_apply = 0
     for i in range(10):
         # id, lang, data, last_message_id, full_name, username
-        total_apply += await db.apply(f"INSERT INTO nekogram_users VALUES ({i}, 'en', '{{}}', 0, 'full_name{i}', 'username{i}');")
+        total_apply += await db.apply(
+            f"INSERT INTO nekogram_users VALUES ({i}, 'en', '{{}}', 0, 'full_name{i}', 'username{i}');"
+        )
 
     users_select = [user async for user in db.select('SELECT * FROM nekogram_users;')]
 
@@ -34,4 +36,4 @@ async def amain():
 
 
 if __name__ == '__main__':
-    asyncio.new_event_loop().run_until_complete(amain())
+    asyncio.new_event_loop().run_until_complete(main())

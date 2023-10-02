@@ -24,17 +24,17 @@ class BaseNeko(ABC):
             delete_messages: bool = True
     ):
         """
-        Initialize a Neko
-        :param storage: A class that inherits from BaseDatabase class
-        :param token: Telegram bot token
-        :param bot: Aiogram Bot object
-        :param dp: Aiogram Dispatcher object
+        Initialize a Neko.
+        :param storage: A class that inherits from BaseDatabase class.
+        :param token: Telegram bot token.
+        :param bot: Aiogram Bot object.
+        :param dp: Aiogram Dispatcher object.
         :param text_processor: A text processor to use (a class inherited from text_processors.BaseProcessor),
-        JSONProcessor by default
-        :param entrypoint: App entrypoint menu name (defaults to start)
-        :param menu_prefixes: Common prefixes for menus defined in translation files
-        :param callback_parameters_delimiter: A delimiter for callback data arguments
-        :param delete_messages: Whether to delete old messages in conversation automatically
+        JSONProcessor by default.
+        :param entrypoint: App entrypoint menu name (defaults to start).
+        :param menu_prefixes: Common prefixes for menus defined in translation files.
+        :param callback_parameters_delimiter: A delimiter for callback data arguments.
+        :param delete_messages: Whether to delete old messages in conversation automatically.
         """
         self.bot: Bot
         self.dp: Dispatcher
@@ -84,7 +84,7 @@ class BaseNeko(ABC):
 
     def register_handlers(self):
         """
-        Registers default handlers
+        Registers default handlers.
         """
         self.dp.register_message_handler(
             handlers.menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE), commands=['start']

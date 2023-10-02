@@ -1,0 +1,21 @@
+lang: en
+menu_2:
+  markup:
+  - - call_data: menu_3
+      text: menu 3
+  - - call_data: menu_start
+      text: back
+  media: media/test.png
+  # Make sure to create a media folder and put any image named `test.png` there.
+menu_3:
+  markup:
+  - - call_data: menu_2
+      text: back
+  text: HELLo!
+start:
+  caption: <b>test</b> caption
+  markup:
+  - - call_data: menu_2
+      text: menu 2
+  media: https://images.pexels.com/photos/15178696/pexels-photo-15178696/free-photo-of-wood-light-nature-dark.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1
+  parse_mode: HTML

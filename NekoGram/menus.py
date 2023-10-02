@@ -106,7 +106,7 @@ class Menu:
 
     def validate_media(self):
         """
-        Validate and process media
+        Validate and process media.
         """
         if self.media:
             # Validate media type
@@ -184,10 +184,10 @@ class Menu:
 
     async def send_message(self, user_id: Optional[int] = None, ignore_media: bool = False) -> types.Message:
         """
-        Sends the menu as a message to a user
-        :param user_id: Telegram user ID
-        :param ignore_media: Whether to ignore media defined in the menu
-        :return: Sent message
+        Sends the menu as a message to a user.
+        :param user_id: Telegram user ID.
+        :param ignore_media: Whether to ignore media defined in the menu.
+        :return: Sent message.
         """
         if user_id is None:
             user_id = self.obj.from_user.id
@@ -214,9 +214,9 @@ class Menu:
 
     async def edit_message(self, ignore_media: bool = False) -> types.Message:
         """
-        Edits message with menu properties
-        :param ignore_media: Whether to ignore media defined in the menu
-        :return: Edited message
+        Edits message with menu properties.
+        :param ignore_media: Whether to ignore media defined in the menu.
+        :return: Edited message.
         """
         obj = self.obj if isinstance(self.obj, types.Message) else self.obj.message
         if self.media:
@@ -235,8 +235,19 @@ class Menu:
                     )
                 except aiogram_exc.BadRequest as e:
                     if str(e) == 'There is no media in the message to edit':
+                        try:
+                            await obj.delete()
+                        except Exception:
+                            await obj.edit_reply_markup()
                         self.resolve_media()
-                    raise e
+                        msg = await getattr(obj, f'answer_{self._media_type}')(**{
+                            self._media_type: self.media,
+                            'caption': self.text,
+                            'parse_mode': self.parse_mode,
+                            'reply_markup': self.markup
+                        })
+                    else:
+                        raise e
         else:
             msg = await obj.edit_text(
                 text=self.text,
@@ -254,9 +265,9 @@ class Menu:
 
     def build_inline_query_result_args(self, **kwargs) -> Dict[str, Any]:
         """
-        Builds kwargs for InlineQueryResult with menu and custom properties
-        :param kwargs: Custom properties for InlineQueryResult
-        :return: Kwargs to initialize an InlineQueryResult object
+        Builds kwargs for InlineQueryResult with menu and custom properties.
+        :param kwargs: Custom properties for InlineQueryResult.
+        :return: Kwargs to initialize an InlineQueryResult object.
         """
         r = dict(caption=self.text, parse_mode=self.parse_mode, reply_markup=self.markup)
         r.update(kwargs)
@@ -264,8 +275,8 @@ class Menu:
 
     async def _resolve_markup_type(self) -> Type[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]]:
         """
-        Resolve markup type
-        :return: InlineKeyboardMarkup or ReplyKeyboardMarkup type
+        Resolve markup type.
+        :return: InlineKeyboardMarkup or ReplyKeyboardMarkup type.
         """
         if self.markup_type == 'inline':
             return types.InlineKeyboardMarkup
@@ -285,11 +296,11 @@ class Menu:
             allowed_buttons: Optional[List[Union[str, int]]]
     ) -> Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]:
         """
-        Apply markup format
-        :param markup: Base markup object
-        :param markup_format: A list, dict or single value to use for formatting
-        :param allowed_buttons: A list of allowed button IDs
-        :return: A formatted markup object
+        Apply markup format.
+        :param markup: Base markup object.
+        :param markup_format: A list, dict or single value to use for formatting.
+        :param allowed_buttons: A list of allowed button IDs.
+        :return: A formatted markup object.
         """
         filter_buttons: bool = isinstance(allowed_buttons, list)
 
@@ -331,12 +342,12 @@ class Menu:
             skip_field_validation: bool = False
     ):
         """
-        Build a menu
-        :param text_format: Formatting for menu text
-        :param markup_format: Formatting for markup buttons
-        :param markup: Aiogram markup object
-        :param allowed_buttons: In case of access limitation which buttons to display
-        :param skip_field_validation: Whether to skip menu field validation (not recommended)
+        Build a menu.
+        :param text_format: Formatting for menu text.
+        :param markup_format: Formatting for markup buttons.
+        :param markup: Aiogram markup object.
+        :param allowed_buttons: In case of access limitation which buttons to display.
+        :param skip_field_validation: Whether to skip menu field validation (not recommended).
         """
 
         if not skip_field_validation:
@@ -366,11 +377,11 @@ class Menu:
 
     async def add_pagination(self, offset: int, found: int, limit: int, shift_last: int = 1):
         """
-        Add a pagination
-        :param offset: Item offset
-        :param found: Number of found items found on this page
-        :param limit: Max number of items that can be displayed at a time
-        :param shift_last: Number of last buttons to shift
+        Add a pagination.
+        :param offset: Item offset.
+        :param found: Number of found items found on this page.
+        :param limit: Max number of items that can be displayed at a time.
+        :param shift_last: Number of last buttons to shift.
         """
         if self.markup:
             LOGGER.warning(f'Pagination was not applied for {self.name} since the menu is already built!')

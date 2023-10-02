@@ -100,9 +100,9 @@ class Neko(BaseNeko):
             self, callback: Callable[[Menu, types.User, BaseNeko], Awaitable[Any]], name: Optional[str] = None
     ):
         """
-        Register a formatter
-        :param callback: A formatter to call
-        :param name: Menu name
+        Register a formatter.
+        :param callback: A formatter to call.
+        :param name: Menu name.
         """
         if not self._registration_warned:
             LOGGER.warning(
@@ -114,8 +114,8 @@ class Neko(BaseNeko):
 
     def formatter(self, name: Optional[str] = None):
         """
-        Register a formatter
-        :param name: Menu name
+        Register a formatter.
+        :param name: Menu name.
         """
 
         def decorator(callback: Callable[[Menu, types.User, BaseNeko], Awaitable[Any]]):
@@ -130,9 +130,9 @@ class Neko(BaseNeko):
             name: Optional[str] = None
     ):
         """
-        Register a function
-        :param callback: A function to call
-        :param name: Menu name
+        Register a function.
+        :param callback: A function to call.
+        :param name: Menu name.
         """
         if not self._registration_warned:
             LOGGER.warning(
@@ -144,8 +144,8 @@ class Neko(BaseNeko):
 
     def function(self, name: Optional[str] = None):
         """
-        Register a function
-        :param name: Menu name
+        Register a function.
+        :param name: Menu name.
         """
 
         def decorator(callback: Callable[[Menu, Union[types.Message, types.CallbackQuery], BaseNeko], Awaitable[Any]]):
@@ -156,16 +156,16 @@ class Neko(BaseNeko):
 
     def register_prev_menu_handler(self, callback: Callable[[Menu], Awaitable[str]], name: Optional[str] = None):
         """
-        Register a prev menu handler
-        :param callback: A prev menu handler to call
-        :param name: Menu name
+        Register a prev menu handler.
+        :param callback: A prev menu handler to call.
+        :param name: Menu name.
         """
         self.prev_menu_handlers[name or callback.__name__] = callback
 
     def prev_menu_handler(self, name: Optional[str] = None):
         """
-        Register a prev menu handler
-        :param name: Menu name
+        Register a prev menu handler.
+        :param name: Menu name.
         """
 
         def decorator(callback: Callable[[Menu], Awaitable[str]]):
@@ -176,16 +176,16 @@ class Neko(BaseNeko):
 
     def register_next_menu_handler(self, callback: Callable[[Menu], Awaitable[str]], name: Optional[str] = None):
         """
-        Register a next menu handler
-        :param callback: A next menu handler to call
-        :param name: Menu name
+        Register a next menu handler.
+        :param callback: A next menu handler to call.
+        :param name: Menu name.
         """
         self.prev_menu_handlers[name or callback.__name__] = callback
 
     def next_menu_handler(self, name: Optional[str] = None):
         """
-        Register a next menu handler
-        :param name: Menu name
+        Register a next menu handler.
+        :param name: Menu name.
         """
 
         def decorator(callback: Callable[[Menu], Awaitable[str]]):
@@ -201,10 +201,10 @@ class Neko(BaseNeko):
             name: Optional[str] = None
     ):
         """
-        Register a markup overrider
-        :param callback: A markup overrider to call
-        :param lang: Language to override markup for
-        :param name: Menu name
+        Register a markup overrider.
+        :param callback: A markup overrider to call.
+        :param lang: Language to override markup for.
+        :param name: Menu name.
         """
         if name is None:
             name = callback.__name__
@@ -214,9 +214,9 @@ class Neko(BaseNeko):
 
     def markup_overrider(self, lang: str, name: Optional[str] = None):
         """
-        Register a markup overrider
-        :param lang: Language to override markup for
-        :param name: Menu name
+        Register a markup overrider.
+        :param lang: Language to override markup for.
+        :param name: Menu name.
         """
 
         def decorator(callback: Callable[[Menu], Awaitable[List[List[Dict[str, str]]]]]):
@@ -234,14 +234,14 @@ class Neko(BaseNeko):
             auto_build: bool = True, lang: Optional[str] = None
     ) -> Optional[Menu]:
         """
-        Build a menu by its name
-        :param name: Menu name, same as in translation file
-        :param obj: An Aiogram Message or CallbackQuery object
-        :param user_id: An ID of a user to build menu for
-        :param callback_data: Callback data to assign to a menu
-        :param auto_build: Whether to build the Menu if no formatter is defined
-        :param lang: User language
-        :return: A Menu object
+        Build a menu by its name.
+        :param name: Menu name, same as in translation file.
+        :param obj: An Aiogram Message or CallbackQuery object.
+        :param user_id: An ID of a user to build menu for.
+        :param callback_data: Callback data to assign to a menu.
+        :param auto_build: Whether to build the Menu if no formatter is defined.
+        :param lang: User language.
+        :return: A Menu object.
         """
         if name == 'menu_start':  # Start patch
             name = 'start'
@@ -287,8 +287,8 @@ class Neko(BaseNeko):
 
     def attach_router(self, router: NekoRouter):
         """
-        Attach a NekoRouter to Neko
-        :param router: A NekoRouter to attach
+        Attach a NekoRouter to Neko.
+        :param router: A NekoRouter to attach.
         """
         if not router.mark_attached():
             return
@@ -308,14 +308,14 @@ class Neko(BaseNeko):
             functions_to_ignore: Optional[List[str]] = None
     ):
         """
-        Attach a widget to Neko
-        :param formatters_router: A NekoRouter object responsible for formatters
-        :param functions_router: A NekoRouter object responsible for functions
-        :param startup: A startup function that returns data required for a widget to work to call
-        :param texts_path: A path to translation files
-        :param db_table_structure_path: A path to table structure file
-        :param formatters_to_ignore: A list of formatter names to ignore
-        :param functions_to_ignore: A list of function names to ignore
+        Attach a widget to Neko.
+        :param formatters_router: A NekoRouter object responsible for formatters.
+        :param functions_router: A NekoRouter object responsible for functions.
+        :param startup: A startup function that returns data required for a widget to work to call.
+        :param texts_path: A path to translation files.
+        :param db_table_structure_path: A path to table structure file.
+        :param formatters_to_ignore: A list of formatter names to ignore.
+        :param functions_to_ignore: A list of function names to ignore.
         """
         if self.storage.__class__.__name__ != 'MySQLStorage' and not self._widgets_warned:
             LOGGER.warning(f'Your storage is not MySQLStorage, widgets may function improperly.')
@@ -377,8 +377,8 @@ class Neko(BaseNeko):
 
     def start_webhook(self, loop=None):
         """
-        Start webhook
-        :param loop: Abstract asyncio loop
+        Start webhook.
+        :param loop: Abstract asyncio loop.
         """
         if self.__webhook_path is None or self.__webhook_port is None:
             raise RuntimeError(
@@ -397,10 +397,10 @@ class Neko(BaseNeko):
             self, bot_token: str, validate_token: bool = True, drop_pending_updates: Optional[bool] = None
     ) -> types.User:
         """
-        Set a webhook for a child bot
-        :param bot_token: Child bot token
-        :param validate_token: Whether to validate a token
-        :param drop_pending_updates: Whether to skip unprocessed updates for a child bot
+        Set a webhook for a child bot.
+        :param bot_token: Child bot token.
+        :param validate_token: Whether to validate a token.
+        :param drop_pending_updates: Whether to skip unprocessed updates for a child bot.
         """
         if self.__webhook_url is None or '{token}' not in self.__webhook_url:
             raise RuntimeError('webhook_url must be specified and contain {token} placeholder to set a webhook.')

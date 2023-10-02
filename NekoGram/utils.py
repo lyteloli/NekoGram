@@ -16,7 +16,7 @@ from .logger import LOGGER
 
 class HandlerInjector(BaseMiddleware):
     """
-    Neko injector middleware
+    Neko injector middleware.
     """
 
     def __init__(self, neko: BaseNeko):
@@ -25,7 +25,7 @@ class HandlerInjector(BaseMiddleware):
 
     async def on_pre_process_message(self, message: types.Message, _: dict):
         """
-        This handler is called when dispatcher receives a message
+        This handler is called when dispatcher receives a message.
         """
         # Get current handler
         message.conf['neko'] = self.neko
@@ -34,7 +34,7 @@ class HandlerInjector(BaseMiddleware):
 
     async def on_process_callback_query(self, call: types.CallbackQuery, _: dict):
         """
-        This handler is called when dispatcher receives a callback query
+        This handler is called when dispatcher receives a callback query.
         """
         # Get current handler
         call.conf['neko'] = self.neko
@@ -45,7 +45,7 @@ class HandlerInjector(BaseMiddleware):
 
     async def on_process_inline_query(self, query: types.InlineQuery, _: dict):
         """
-        This handler is called when dispatcher receives an inline query
+        This handler is called when dispatcher receives an inline query.
         """
         # Get current handler
         query.conf['neko'] = self.neko
@@ -55,10 +55,10 @@ class HandlerInjector(BaseMiddleware):
 
 async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bool]:
     """
-    Upload a file to Telegra.ph
-    :param f: File BytesIO
-    :param mime: File MIME type
-    :return: File URL on success
+    Upload a file to Telegra.ph.
+    :param f: File BytesIO.
+    :param mime: File MIME type.
+    :return: File URL on success.
     """
     # f = await (max(message.photo, key=lambda c: c.width)).download(destination=BytesIO())
     data = aiohttp.FormData()
