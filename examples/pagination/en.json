@@ -1,0 +1,10 @@
+{
+  "lang": "en",
+  "menu_admins": {
+    "text": "Please select an admin",
+    "markup": [
+      [{"text": "➕New admin", "call_data": "menu_admins_new"}],
+      [{"text": "⬅️Back", "call_data": "menu_start"}]
+    ]
+  }
+}

@@ -385,22 +385,18 @@ class Menu:
         """
         if self.markup:
             LOGGER.warning(f'Pagination was not applied for {self.name} since the menu is already built!')
-        last_buttons = list()
-        for x in range(-1, shift_last - 1):
-            last_buttons.append(self.raw_markup[x])
-            del self.raw_markup[x]
+            return
+        index_to_insert = len(self.raw_markup) - shift_last
         if offset >= limit and found > limit:
-            # Add previous and next buttons
-            self.raw_markup.append([
+            self.raw_markup[index_to_insert:index_to_insert] = [[
                 {'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'},
                 {'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}
-            ])
+            ]]
         elif offset >= limit:
-            self.raw_markup.append([{'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'}])
+            self.raw_markup[index_to_insert:index_to_insert] = [[
+                {'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'}
+            ]]
         elif found > limit:
-            self.raw_markup.append([{'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}])
-
-        if shift_last:
-            last_buttons.reverse()
-            for x in last_buttons:
-                self.raw_markup.append(x)
+            self.raw_markup[index_to_insert:index_to_insert] = [[
+                {'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}
+            ]]
