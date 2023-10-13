@@ -11,7 +11,6 @@ except ImportError:
     import json
 
 from .base_neko import BaseNeko
-from .logger import LOGGER
 
 
 class HandlerInjector(BaseMiddleware):
@@ -77,14 +76,3 @@ async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bo
                 return f'https://telegra.ph{item_path}'
     except aiohttp.ClientError:
         return False
-
-
-def warn_deprecated(new_function: str):
-    def decorator(callback: callable):
-        async def wrapper(*args, **kwargs):
-            LOGGER.warning(
-                f'{callback.__name__} is deprecated and may be removed in future updates, use {new_function} instead.'
-            )
-            return await callback(*args, **kwargs)
-        return wrapper
-    return decorator

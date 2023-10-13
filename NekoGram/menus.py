@@ -1,9 +1,9 @@
 from typing import Optional, Union, Dict, List, Any, Type, Set
-from contextlib import suppress
 from aiogram import types, exceptions as aiogram_exc
+from typing_extensions import deprecated  # noqa
+from contextlib import suppress
 from io import BytesIO
 
-from .utils import warn_deprecated
 from .base_neko import BaseNeko
 from .logger import LOGGER
 
@@ -120,7 +120,7 @@ class Menu:
             else:
                 self._media_type = self.resolve_media_type(self._media)
 
-            if not self._init_media.startswith(('http://', 'https://')):
+            if not self._init_media.startswith(('http://', 'https://')):  # noqa
                 self.resolve_media()
 
     @classmethod
@@ -237,7 +237,7 @@ class Menu:
                     if str(e) == 'There is no media in the message to edit':
                         try:
                             await obj.delete()
-                        except Exception:
+                        except Exception:  # noqa
                             await obj.edit_reply_markup()
                         self.resolve_media()
                         msg = await getattr(obj, f'answer_{self._media_type}')(**{
@@ -259,7 +259,9 @@ class Menu:
             await self.neko.storage.set_last_message_id(user_id=self.obj.from_user.id, message_id=msg.message_id)
         return msg
 
-    @warn_deprecated(new_function='edit_message')
+    @deprecated(
+        'The `edit_text` method is deprecated and may be removed in future updates, use `edit_message` instead.'
+    )
     async def edit_text(self, ignore_media: bool = False) -> types.Message:
         return await self.edit_message(ignore_media=ignore_media)
 

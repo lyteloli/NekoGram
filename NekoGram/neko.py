@@ -1,6 +1,7 @@
 from typing import Dict, List, Union, Optional, Any, Callable, Awaitable
 from aiogram.dispatcher.filters import Filter
 from aiogram import Dispatcher, Bot, types
+from typing_extensions import deprecated  # noqa
 from datetime import datetime
 from copy import deepcopy
 import inspect
@@ -11,9 +12,9 @@ try:
 except ImportError:
     import json
 
-from .utils import HandlerInjector, warn_deprecated
 from .webhook import KittyWebhook, KittyExecutor
 from .text_processors import BaseProcessor
+from .utils import HandlerInjector
 from .storages import BaseStorage
 from .base_neko import BaseNeko
 from .router import NekoRouter
@@ -81,7 +82,9 @@ class Neko(BaseNeko):
             callback = callback.check
         self.filters[name] = callback
 
-    @warn_deprecated(new_function='attach_filter')
+    @deprecated(
+        'The `add_filter` method is deprecated and may be removed in future updates, use `attach_filter` instead.'
+    )
     def add_filter(self, name: str, callback: Union[callable, Filter]):
         self.attach_filter(name=name, callback=callback)
 
