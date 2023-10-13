@@ -1,4 +1,4 @@
-from typing import Optional, Union, Dict, List, Any, Type, Set
+from typing import Optional, Union, Dict, List, Any, Type, Set, Iterable
 from aiogram import types, exceptions as aiogram_exc
 from typing_extensions import deprecated  # noqa
 from contextlib import suppress
@@ -297,16 +297,16 @@ class Menu:
             self,
             markup: Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup],
             markup_format: Optional[Union[List[Any], Dict[str, Any], Any]],
-            allowed_buttons: Optional[List[Union[str, int]]]
+            allowed_buttons: Optional[Iterable[Union[str, int]]]
     ) -> Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]:
         """
         Apply markup format.
         :param markup: Base markup object.
         :param markup_format: A list, dict or single value to use for formatting.
-        :param allowed_buttons: A list of allowed button IDs.
+        :param allowed_buttons: An iterable of allowed button IDs.
         :return: A formatted markup object.
         """
-        filter_buttons: bool = isinstance(allowed_buttons, list)
+        filter_buttons: bool = isinstance(allowed_buttons, Iterable) and not isinstance(allowed_buttons, str)
 
         button_type = types.InlineKeyboardButton \
             if isinstance(markup, types.InlineKeyboardMarkup) else types.KeyboardButton
