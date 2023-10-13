@@ -196,8 +196,8 @@ class MySQLStorage(BaseStorage):
         :param query: SQL query to execute.
         :param args: Arguments passed to the SQL query.
         :param fetch_all: Set True if you need a list of rows instead of just a single row.
-        :param use_attr_dict: Whether to use dict or AttrDict for fetched rows, is relevant with fetch_all=True only.
-        :return: A row or a list or rows.
+        :param use_attr_dict: Whether to use dict or AttrDict for fetched rows.
+        :return: A row or a list of rows.
         """
         args = self._verify_args(args)
         async with self.pool.acquire() as conn:
@@ -208,11 +208,13 @@ class MySQLStorage(BaseStorage):
 
                     if fetch_all:
                         if use_attr_dict:
-                            return [self._AttrDict(x) for x in await cursor.fetchall() or []]
+                            return [self._AttrDict(row) for row in await cursor.fetchall()]
                         return await cursor.fetchall() or []
                     else:
-                        result = self._AttrDict(await cursor.fetchone())
-                        return result or dict()
+                        result = await cursor.fetchone() or dict()
+                        if use_attr_dict:
+                            return self._AttrDict(result)
+                        return result
                 except mysql_errors.Error:
                     return False
 
