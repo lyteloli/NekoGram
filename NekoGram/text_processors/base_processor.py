@@ -13,7 +13,7 @@ class BaseProcessor(ABC):
 
     def _verify(self):
         for lang, data in self.texts.items():
-            if data.get('start') is None:
+            if data.get('start') is None and self._validate_start:
                 raise RuntimeError(f'\"start\" menu is undefined for {lang}! *Nervous paw shaking*')
 
     def _add_text(self, text_data: dict):
@@ -42,8 +42,3 @@ class BaseProcessor(ABC):
         :param output_path: Output file path.
         """
         pass
-
-    @property
-    @abstractmethod
-    def processor_type(self) -> str:
-        return 'base'

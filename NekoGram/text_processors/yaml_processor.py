@@ -6,7 +6,7 @@ from os import listdir
 try:
     import yaml
 except ImportError:
-    raise ImportError('Install pyyaml to use YAMLProcessor!')
+    raise ImportError('Install `pyyaml` to use `YAMLProcessor`!')
 
 from .base_processor import BaseProcessor
 
@@ -82,7 +82,3 @@ class YAMLProcessor(BaseProcessor):
 
         with open(output_path, 'w', encoding='utf-8') as f:
             yaml.dump(data, f)
-
-    @property
-    def processor_type(self) -> str:
-        return 'yaml'

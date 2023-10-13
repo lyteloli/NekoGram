@@ -76,3 +76,7 @@ async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bo
                 return f'https://telegra.ph{item_path}'
     except aiohttp.ClientError:
         return False
+
+
+class NekoGramWarning(Warning):
+    ...

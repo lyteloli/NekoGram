@@ -6,6 +6,10 @@ from os import listdir
 try:
     import ujson as json
 except ImportError:
+    import warnings
+    from ..utils import NekoGramWarning
+
+    warnings.warn('`ujson` is not installed, `JSONProcessor` may work slowly.', category=NekoGramWarning)
     import json
 
 from .base_processor import BaseProcessor
@@ -82,7 +86,3 @@ class JSONProcessor(BaseProcessor):
 
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
-
-    @property
-    def processor_type(self) -> str:
-        return 'json'

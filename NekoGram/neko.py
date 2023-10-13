@@ -12,9 +12,9 @@ try:
 except ImportError:
     import json
 
+from .utils import HandlerInjector, NekoGramWarning
 from .webhook import KittyWebhook, KittyExecutor
 from .text_processors import BaseProcessor
-from .utils import HandlerInjector
 from .storages import BaseStorage
 from .base_neko import BaseNeko
 from .router import NekoRouter
@@ -83,7 +83,8 @@ class Neko(BaseNeko):
         self.filters[name] = callback
 
     @deprecated(
-        'The `add_filter` method is deprecated and may be removed in future updates, use `attach_filter` instead.'
+        'The `add_filter` method is deprecated and may be removed in future updates, use `attach_filter` instead.',
+        category=NekoGramWarning
     )
     def add_filter(self, name: str, callback: Union[callable, Filter]):
         self.attach_filter(name=name, callback=callback)

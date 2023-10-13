@@ -4,6 +4,7 @@ from typing_extensions import deprecated  # noqa
 from contextlib import suppress
 from io import BytesIO
 
+from .utils import NekoGramWarning
 from .base_neko import BaseNeko
 from .logger import LOGGER
 
@@ -260,7 +261,8 @@ class Menu:
         return msg
 
     @deprecated(
-        'The `edit_text` method is deprecated and may be removed in future updates, use `edit_message` instead.'
+        'The `edit_text` method is deprecated and may be removed in future updates, use `edit_message` instead.',
+        category=NekoGramWarning
     )
     async def edit_text(self, ignore_media: bool = False) -> types.Message:
         return await self.edit_message(ignore_media=ignore_media)
