@@ -1,15 +1,14 @@
 from typing import Optional, Union, Any, AsyncGenerator, List, Dict, Tuple
-
-try:
-    from aiomysql.cursors import DictCursor
-except ImportError:
-    raise ImportError('Install aiomysql to use MySQLStorage!')
-
 from pymysql import err as mysql_errors
 from pymysql.constants import CLIENT
 from contextlib import suppress
 import aiomysql
 import os
+
+try:
+    from aiomysql.cursors import DictCursor
+except ImportError:
+    raise ImportError('Install `aiomysql` to use `MySQLStorage`!')
 
 try:
     import ujson as json
@@ -125,11 +124,10 @@ class MySQLStorage(BaseStorage):
         Closes existing MySQL pool.
         :return: True if the pool was successfully closed, otherwise False.
         """
-        try:
+        with suppress(Exception):
             self.pool.close()
-        except Exception:
-            return False
-        return True
+            return True
+        return False
 
     async def apply(
             self,

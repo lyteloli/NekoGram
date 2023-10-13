@@ -67,7 +67,7 @@ class BaseNeko(ABC):
             self.filters[f] = getattr(builtin_filters, f'is_{f}')
 
         self.functions: Dict[str, Callable[
-            [Any, Union[types.Message, types.CallbackQuery, types.InlineQuery],BaseNeko], Awaitable[Any]
+            [Any, Union[types.Message, types.CallbackQuery, types.InlineQuery], BaseNeko], Awaitable[Any]
         ]] = dict()
         self.format_functions: Dict[str, Callable[[Any, types.User, BaseNeko], Awaitable[Any]]] = dict()
         self.prev_menu_handlers: Dict[str, Callable[[Any], Awaitable[str]]] = dict()

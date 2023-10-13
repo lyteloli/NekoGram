@@ -1,11 +1,11 @@
 from typing import Union, Optional, Dict, Any, List, Tuple, AsyncGenerator
+from contextlib import suppress
+import os
 
 try:
     import aiosqlite
 except ImportError:
-    raise ImportError('Install aiosqlite to use SQLiteStorage!')
-
-import os
+    raise ImportError('Install `aiosqlite` to use `SQLiteStorage`!')
 
 try:
     import ujson as json
@@ -32,7 +32,7 @@ class SQLiteStorage(BaseStorage):
         try:
             self.pool = await aiosqlite.connect(database=self.database)
             self.pool.row_factory = aiosqlite.Row
-        except Exception:
+        except Exception:  # noqa
             LOGGER.exception('SQLite pool creation failed. *neko things')
             return False
         with open(os.path.abspath(__file__).replace('sqlite.py', 'tables.sql'), 'r', encoding='utf-8') as file:
@@ -46,12 +46,11 @@ class SQLiteStorage(BaseStorage):
         Closes existing SQLite pool.
         :return: True if the pool was successfully closed, otherwise False.
         """
-        try:
+        with suppress(Exception):
             await self.pool.close()
-        except Exception:
-            LOGGER.exception('SQLite pool closure failed. *neko things')
-            return False
-        return True
+            return True
+        LOGGER.exception('SQLite pool closure failed. *neko things')
+        return False
 
     async def apply(self, query: str, args: Union[Tuple[Any, ...], Any] = (), ignore_errors: bool = False) -> int:
         """
@@ -85,7 +84,7 @@ class SQLiteStorage(BaseStorage):
                     yield self._AttrDict(item)
                 else:
                     break
-        except Exception:
+        except Exception:  # noqa
             pass
 
     async def get(
@@ -124,7 +123,7 @@ class SQLiteStorage(BaseStorage):
         """
         try:
             cursor: aiosqlite.Cursor = await self.pool.execute(query, self._verify_args(args))
-        except Exception:
+        except Exception:  # noqa
             return 0
         return len(await cursor.fetchall())
 

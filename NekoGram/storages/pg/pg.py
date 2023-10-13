@@ -3,7 +3,7 @@ from typing import Union, Optional, Dict, Any, List, Tuple, AsyncGenerator
 try:
     import asyncpg
 except ImportError:
-    raise ImportError('Install asyncpg to use PGStorage!')
+    raise ImportError('Install `asyncpg` to use `PGStorage`!')
 
 import os
 
@@ -45,7 +45,7 @@ class PGStorage(BaseStorage):
             self.pool = await asyncpg.pool.create_pool(
                 database=self.database, host=self.host, port=self.port, user=self.user, password=self.password
             )
-        except Exception:
+        except Exception:  # noqa
             LOGGER.exception('PostgreSQL pool creation failed. *neko things')
             return False
         with open(os.path.abspath(__file__).replace('pg.py', 'tables.sql'), 'r', encoding='utf-8') as file:
@@ -61,7 +61,7 @@ class PGStorage(BaseStorage):
         try:
             await self.pool.expire_connections()
             await self.pool.close()
-        except Exception:
+        except Exception:  # noqa
             LOGGER.exception('PostgreSQL pool closure failed. *neko things')
             return False
         return True
