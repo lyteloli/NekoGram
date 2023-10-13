@@ -2,15 +2,15 @@
   "nekogram_users": {
     "id": {"Field": "id", "Type": "bigint(20)", "Null": "NO", "Key": "PRI", "Default": null, "Extra": "",
       "struct":  "`id` bigint(20) NOT NULL PRIMARY KEY"},
-    "lang": {"Field": "lang", "Type": "varchar(2)", "Null": "NO", "Key": "", "Default": null, "Extra": "",
-      "struct": "`lang` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL"},
-    "data": {"Field": "data", "Type": "longtext", "Null": "NO", "Key": "", "Default": "'{}'", "Extra": "",
-      "struct": "`data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}'"},
-    "last_message_id": {"Field": "last_message_id", "Type": "int(11)", "Null": "YES", "Key": "", "Default": null, "Extra": "",
-      "struct": "`last_message_id` int(11) DEFAULT NULL"},
+    "username": {"Field": "username", "Type": "varchar(100)", "Null": "YES", "Key": "", "Default": null, "Extra": "",
+      "struct": "`username` varchar(100) DEFAULT NULL"},
     "full_name": {"Field": "full_name", "Type": "varchar(100)", "Null": "NO", "Key": "", "Default": null, "Extra": "",
       "struct": "`full_name` varchar(100) NOT NULL"},
-    "username": {"Field": "username", "Type": "varchar(100)", "Null": "YES", "Key": "", "Default": null, "Extra": "",
-      "struct": "`username` varchar(100) DEFAULT NULL"}
+    "last_message_id": {"Field": "last_message_id", "Type": "int(11)", "Null": "YES", "Key": "", "Default": null, "Extra": "",
+      "struct": "`last_message_id` int(11) DEFAULT NULL"},
+    "data": {"Field": "data", "Type": "longtext", "Null": "NO", "Key": "", "Default": "'{}'", "Extra": "",
+      "struct": "`data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}'"},
+    "lang": {"Field": "lang", "Type": "varchar(2)", "Null": "NO", "Key": "", "Default": null, "Extra": "",
+      "struct": "`lang` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL"}
   }
 }
