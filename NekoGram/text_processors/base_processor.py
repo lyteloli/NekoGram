@@ -1,5 +1,7 @@
 from typing import Union, Dict, Any, TextIO
 from abc import ABC, abstractmethod
+import os
+import io
 
 
 class BaseProcessor(ABC):
@@ -11,34 +13,50 @@ class BaseProcessor(ABC):
         self.texts: Dict[str, Dict[str, Any]] = dict()
         self._validate_start: bool = validate_start
 
-    def _verify(self):
+    @property
+    @abstractmethod
+    def extensions(self) -> list[str]:
+        """
+        List of file extensions to accept whe adding texts.
+        :return: list of extensions, e.g. `['.ext1', '.ext2']`.
+        """
+
+    @abstractmethod
+    def from_str(self, texts: str) -> dict[str, Any]:
+        """
+        Convert `str` texts to `dict`.
+        :param texts: `str` texts to convert.
+        :return: `dict` texts.
+        """
+
+    def add_texts(self, texts: Union[str, TextIO] = 'translations', is_widget: bool = False) -> None:
+        """
+        Assigns a required piece of texts to use later.
+        :param texts: paths to a dir containing translations; path to a file containing translation;
+        `typing.TextIO` object containing translation; `str` object containing translation.
+        :param is_widget: True if texts is a widget texts, otherwise False.
+        :return: None.
+        """
+        def gather(_texts: Union[str, TextIO] = 'translations', _is_widget: bool = False) -> None:
+            if isinstance(_texts, io.TextIOWrapper):  # opened file
+                gather(_texts.read(), _is_widget)
+            elif os.path.isdir(_texts):  # path to the dir
+                for entry in os.listdir(_texts):
+                    gather(os.path.abspath(os.path.join(_texts, entry)), _is_widget)
+            elif os.path.isfile(_texts) and any(_texts.endswith(ext) for ext in self.extensions):  # path to the file
+                with open(_texts, 'r', encoding='utf-8') as file:
+                    gather(file, _is_widget)
+            elif isinstance(_texts, str):  # str
+                _texts = self.from_str(_texts)
+                lang = _texts.get('lang')
+                if lang is None:
+                    raise ValueError('Some texts do not contain a language definition field "lang".')
+                if _is_widget and lang not in self.texts.keys():  # ignore extra langs for widgets
+                    return
+                self.texts[lang] = self.texts.get(lang, dict()) | _texts
+            else:
+                raise NotImplementedError(f"Can't parse `texts` of type {type(_texts)} and value {_texts}.")
+        gather(texts, is_widget)
         for lang, data in self.texts.items():
             if data.get('start') is None and self._validate_start:
-                raise RuntimeError(f'\"start\" menu is undefined for {lang}! *Nervous paw shaking*')
-
-    def _add_text(self, text_data: dict):
-        for lang, text in text_data.items():
-            if lang not in self.texts:
-                self.texts[lang] = text
-            else:
-                self.texts[lang].update(text)
-
-    @staticmethod
-    @abstractmethod
-    def add_texts(texts: Union[Dict[str, Any], TextIO, str] = 'translations', is_widget: bool = False):
-        """
-        Load texts to memory.
-        :param texts: Path to folder, file, TextIO or string containing translation data.
-        :param is_widget: Whether the passed `texts` is related to a widget.
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def convert_data(data: Dict[str, Any], output_path: str):
-        """
-        Convert input dictionary to file format associated with this text processor.
-        :param data: Input data dictionary.
-        :param output_path: Output file path.
-        """
-        pass
+                raise RuntimeError(f'"start" menu is undefined for {lang}! *Nervous paw shaking*')
