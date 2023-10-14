@@ -119,8 +119,31 @@ class BaseNeko(ABC):
     async def check_text_exists(self, text: str, lang: Optional[str] = None) -> bool:
         pass
 
-    def start_polling(self, on_startup: Optional[callable] = None, on_shutdown: Optional[callable] = None):
-        executor.start_polling(self.dp, on_startup=on_startup, on_shutdown=on_shutdown)
+    def start_polling(
+            self,
+            *,
+            on_startup: Optional[callable] = None,
+            on_shutdown: Optional[callable] = None,
+            loop: Any = None,
+            skip_updates: bool = False,
+            reset_webhook: bool = True,
+            timeout: int = 20,
+            relax: float = 0.1,
+            fast: bool = True,
+            allowed_updates: Optional[List[str]] = None
+    ) -> None:
+        executor.start_polling(
+            self.dp,
+            on_startup=on_startup,
+            on_shutdown=on_shutdown,
+            loop=loop,
+            skip_updates=skip_updates,
+            reset_webhook=reset_webhook,
+            timeout=timeout,
+            relax=relax,
+            fast=fast,
+            allowed_updates=allowed_updates
+        )
 
     @abstractmethod
     def register_formatter(self, callback: callable, name: Optional[str] = None):
