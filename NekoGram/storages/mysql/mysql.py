@@ -49,7 +49,7 @@ class MySQLStorage(BaseStorage):
             self._table_structs: Dict[str, Dict[str, Dict[str, Optional[str]]]] = json.load(file)
         super().__init__(default_language=default_language)
 
-    def placeholder(self, counter: Optional[int] = None) -> str:
+    def p(self, counter: Optional[int] = None) -> str:
         return '%s'
 
     def __del__(self):

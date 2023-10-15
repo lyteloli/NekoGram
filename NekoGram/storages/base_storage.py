@@ -9,8 +9,10 @@ class BaseStorage(ABC):
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
 
     @abstractmethod
-    def placeholder(self, counter: Optional[int] = None) -> str:
-        ...
+    def p(self, counter: Optional[int] = None) -> str:
+        """
+        Returns a placeholder for a query argument, e.g. `%s`, `?` or `$X`.
+        """
 
     @abstractmethod
     async def set_user_language(self, user_id: int, language: str) -> None:

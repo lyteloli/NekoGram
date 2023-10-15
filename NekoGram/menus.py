@@ -97,6 +97,7 @@ class Menu:
         self.bot_id: Optional[int] = None
         self.intermediate_menu: Optional[str] = intermediate_menu
         self._break_execution: bool = False
+        self.skip_media_validation: bool = False
 
         self.extras.update(kwargs)
 
@@ -105,24 +106,20 @@ class Menu:
 
         self.validate_media()
 
-    def validate_media(self):
+    def validate_media(self) -> None:
         """
         Validate and process media.
         """
-        if self.media:
-            # Validate media type
-            if self._media_type:
-                self._media_type = self._media_type.lower()
-                if self._media_type not in self.__media_extensions.keys():
-                    raise ValueError(
-                        f'{self._media_type} is not a valid media type (defined in {self.name}). '
-                        f'Valid options: {", ".join(self.__media_extensions.keys())}'
-                    )
-            else:
-                self._media_type = self.resolve_media_type(self._media)
-
-            if not self._init_media.startswith(('http://', 'https://')):  # noqa
-                self.resolve_media()
+        if self.skip_media_validation or not self.media:
+            return
+        if self._media_type and self._media_type not in self.__media_extensions.keys():
+            raise ValueError(
+                f'{self._media_type} is not a valid media type (defined in {self.name}). '
+                f'Valid options: {", ".join(self.__media_extensions.keys())}'
+            )
+        else:
+            self._media_type = self.resolve_media_type(self._media)
+        self.resolve_media()
 
     @classmethod
     def resolve_media_type(cls, path_or_url: str) -> str:
@@ -132,12 +129,13 @@ class Menu:
                 return key
         return 'document'
 
-    def resolve_media(self) -> BytesIO:
+    def resolve_media(self) -> None:
+        if self.skip_media_validation or self._init_media.startswith(('http://', 'https://')):  # noqa
+            return
         if not self.__cached_media.get(self._init_media):
             with open(self._init_media, 'rb') as f:
                 self.__cached_media[self._init_media] = f.read()
         self._media = BytesIO(self.__cached_media[self._init_media])
-        return self._media
 
     @property
     def media(self):
@@ -155,7 +153,7 @@ class Menu:
 
     @media_type.setter
     def media_type(self, value: str):
-        self.media_type = value
+        self._media_type = value.lower()
         self.validate_media()
 
     def break_execution(self):
@@ -194,7 +192,7 @@ class Menu:
             user_id = self.obj.from_user.id
         if self.media and not ignore_media:
             msg = await getattr(self.obj.bot, f'send_{self._media_type}')(**{
-                self._media_type: self.media,
+                self.media_type: self.media,
                 'chat_id': user_id,
                 'caption': self.text,
                 'parse_mode': self.parse_mode,
@@ -203,9 +201,15 @@ class Menu:
                 'protect_content': self.protect_content
             })
         else:
-            msg = await self.obj.bot.send_message(chat_id=user_id, text=self.text, protect_content=self.protect_content,
-                                                  parse_mode=self.parse_mode, disable_web_page_preview=self.no_preview,
-                                                  disable_notification=self.silent, reply_markup=self.markup)
+            msg = await self.obj.bot.send_message(
+                chat_id=user_id,
+                text=self.text,
+                protect_content=self.protect_content,
+                parse_mode=self.parse_mode,
+                disable_web_page_preview=self.no_preview,
+                disable_notification=self.silent,
+                reply_markup=self.markup,
+            )
         if self.neko.delete_messages:
             last_message_id = await self.neko.storage.get_last_message_id(user_id=user_id)
             await self.neko.storage.set_last_message_id(user_id=user_id, message_id=msg.message_id)
@@ -273,9 +277,7 @@ class Menu:
         :param kwargs: Custom properties for InlineQueryResult.
         :return: Kwargs to initialize an InlineQueryResult object.
         """
-        r = dict(caption=self.text, parse_mode=self.parse_mode, reply_markup=self.markup)
-        r.update(kwargs)
-        return r
+        return dict(caption=self.text, parse_mode=self.parse_mode, reply_markup=self.markup, **kwargs)
 
     async def _resolve_markup_type(self) -> Type[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]]:
         """
@@ -354,8 +356,7 @@ class Menu:
         :param skip_field_validation: Whether to skip menu field validation (not recommended).
         """
 
-        if not skip_field_validation:
-            # Validate extras
+        if not skip_field_validation:  # Validate extras
             for key, value in self.extras.items():
                 if key in self.__default_menu_values:
                     setattr(self, self.__default_menu_values[key], value)
@@ -363,8 +364,7 @@ class Menu:
         if self.text:
             self.text = self._apply_formatting(text_format, self.text)[0]
 
-        if markup is None and self.raw_markup is not None:
-            # Resolve markup type
+        if markup is None and self.raw_markup is not None:  # Resolve markup type
             markup_type = await self._resolve_markup_type()
             if markup_type == types.ReplyKeyboardMarkup:
                 markup = types.ReplyKeyboardMarkup(row_width=self.markup_row_width or 3, resize_keyboard=True)
@@ -372,35 +372,47 @@ class Menu:
                 markup = markup_type(row_width=self.markup_row_width or 3)
 
         if markup:
-            self.markup = await self._format_markup(markup=markup, markup_format=markup_format,
-                                                    allowed_buttons=allowed_buttons)
+            self.markup = await self._format_markup(
+                markup=markup,
+                markup_format=markup_format,
+                allowed_buttons=allowed_buttons
+            )
 
     @property
     def call_data(self) -> Optional[Any]:
         return self._call_data
 
-    async def add_pagination(self, offset: int, found: int, limit: int, shift_last: int = 1):
+    async def add_pagination(
+            self,
+            offset: int,
+            found: int,
+            limit: int,
+            shift_last: int = 1,
+            prev: str = '⬅️',
+            next: str = '➡️',  # noqa
+    ) -> None:
         """
         Add a pagination.
         :param offset: Item offset.
         :param found: Number of found items found on this page.
         :param limit: Max number of items that can be displayed at a time.
-        :param shift_last: Number of last buttons to shift.
+        :param shift_last: Number of buttons to shift starting from the end.
+        :param prev: text for a button which leads to the previous page.
+        :param next: text for a button which leads to the next page.
         """
         if self.markup:
-            LOGGER.warning(f'Pagination was not applied for {self.name} since the menu is already built!')
-            return
+            return LOGGER.warning(f'Pagination was not applied for {self.name} since the menu is already built!')
         index_to_insert = len(self.raw_markup) - shift_last
         if offset >= limit and found > limit:
-            self.raw_markup[index_to_insert:index_to_insert] = [[
-                {'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'},
-                {'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}
+            self.raw_markup[index_to_insert: index_to_insert] = [[
+                {'call_data': f'{self.name}#{offset - limit}', 'text': prev},
+                {'call_data': f'{self.name}#{offset + limit}', 'text': next}
             ]]
         elif offset >= limit:
-            self.raw_markup[index_to_insert:index_to_insert] = [[
-                {'call_data': f'{self.name}#{offset - limit}', 'text': '⬅️'}
+            self.raw_markup[index_to_insert: index_to_insert] = [[
+                {'call_data': f'{self.name}#{offset - limit}', 'text': prev}
             ]]
         elif found > limit:
-            self.raw_markup[index_to_insert:index_to_insert] = [[
-                {'call_data': f'{self.name}#{offset + limit}', 'text': '➡️'}
+            self.raw_markup[index_to_insert: index_to_insert] = [[
+                {'call_data': f'{self.name}#{offset + limit}', 'text': next}
             ]]

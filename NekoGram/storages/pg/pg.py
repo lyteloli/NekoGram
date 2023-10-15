@@ -1,11 +1,10 @@
 from typing import Union, Optional, Dict, Any, List, Tuple, AsyncGenerator
+import os
 
 try:
     import asyncpg
 except ImportError:
     raise ImportError('Install `asyncpg` to use `PGStorage`!')
-
-import os
 
 try:
     import ujson as json
@@ -37,7 +36,7 @@ class PGStorage(BaseStorage):
         super().__init__(default_language=default_language)
 
     @property
-    def placeholder(self, counter: Optional[int] = None) -> str:
+    def p(self, counter: Optional[int] = None) -> str:
         if not counter:
             raise ValueError(f'`{self.__class__.__name__}.placeholder(counter={counter})`')
         return f'${counter}'

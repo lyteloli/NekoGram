@@ -25,11 +25,12 @@ class HandlerInjector(BaseMiddleware):
     async def _actualize(self, user: types.User) -> None:
         await self.neko.storage.apply(
             f'UPDATE nekogram_users SET '
-            f'full_name = {self.neko.storage.placeholder(1)}, '
-            f'username = {self.neko.storage.placeholder(2)} '
-            f'WHERE id = {self.neko.storage.placeholder(3)};', (
-            user.full_name, user.username, user.id
-        ))
+            f'full_name = {self.neko.storage.p(1)}, '
+            f'username = {self.neko.storage.p(2)} '
+            f'WHERE id = {self.neko.storage.p(3)};', (
+                user.full_name, user.username, user.id
+            )
+        )
 
     async def on_pre_process_message(self, message: types.Message, _: dict):
         """
@@ -66,7 +67,7 @@ class HandlerInjector(BaseMiddleware):
 
 async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bool]:
     """
-    Upload a file to Telegra.ph.
+    Upload a file to https://telegra.ph.
     :param f: File BytesIO.
     :param mime: File MIME type.
     :return: File URL on success.
