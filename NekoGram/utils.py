@@ -27,9 +27,8 @@ class HandlerInjector(BaseMiddleware):
             f'UPDATE nekogram_users SET '
             f'full_name = {self.neko.storage.p(1)}, '
             f'username = {self.neko.storage.p(2)} '
-            f'WHERE id = {self.neko.storage.p(3)};', (
-                user.full_name, user.username, user.id
-            )
+            f'WHERE id = {self.neko.storage.p(3)}',
+            (user.full_name, user.username, user.id)
         )
 
     async def on_pre_process_message(self, message: types.Message, _: dict):
@@ -65,14 +64,19 @@ class HandlerInjector(BaseMiddleware):
             query.conf['request_token'] = query.conf['parent']().conf['request_token']
 
 
-async def telegraph_upload(f: BytesIO, mime: str = 'image/png') -> Union[str, bool]:
+async def telegraph_upload(f: Union[BytesIO, types.Message], mime: str = 'image/png') -> Union[str, bool]:
     """
     Upload a file to https://telegra.ph.
-    :param f: File BytesIO.
+    :param f: A BytesIO file or an AIOGram message object.
     :param mime: File MIME type.
     :return: File URL on success.
     """
-    # f = await (max(message.photo, key=lambda c: c.width)).download(destination=BytesIO())
+    if isinstance(f, types.Message):
+        if f.text:
+            raise ValueError('You message does not seem to have any media')
+        f = f.photo[-1] if f.photo else getattr(f, f.content_type)
+        f = f.download(destination=BytesIO())
+
     data = aiohttp.FormData()
     data.add_field('file', f.read(), filename=f'file.{mime.split("/")[1]}', content_type=mime)
     try:
