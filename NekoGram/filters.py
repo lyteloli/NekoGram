@@ -251,6 +251,18 @@ class BuiltInFilters:
         return bool(obj.forward_from or obj.forward_from_chat)
 
     @staticmethod
+    async def is_forwarded_from_group(obj: Union[Message, CallbackQuery]) -> bool:
+        """
+        Checks if the message was forwarded from a group or a supergroup.
+        :param obj: A Message or a CallbackQuery object.
+        :return: True if so, False otherwise.
+        """
+        if not isinstance(obj, Message):
+            return False
+
+        return obj.forward_from_chat and obj.forward_from_chat.type in ['group', 'supergroup']
+
+    @staticmethod
     async def is_forwarded_from_channel(obj: Union[Message, CallbackQuery]) -> bool:
         """
         Checks if message is forwarded from a channel.
