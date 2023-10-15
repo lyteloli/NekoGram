@@ -9,6 +9,10 @@ class BaseStorage(ABC):
         self._cached_user_languages: Dict[str, Dict[str, Union[str, datetime]]] = dict()
 
     @abstractmethod
+    def placeholder(self, counter: Optional[int] = None) -> str:
+        ...
+
+    @abstractmethod
     async def set_user_language(self, user_id: int, language: str) -> None:
         self._cached_user_languages[str(user_id)] = {
             'date': datetime.now(), 'lang': language

@@ -24,6 +24,10 @@ class SQLiteStorage(BaseStorage):
 
         super().__init__(default_language=default_language)
 
+    @property
+    def placeholder(self, counter: Optional[int] = None) -> str:
+        return '?'
+
     async def acquire_pool(self) -> bool:
         """
         Creates a new SQLite pool.

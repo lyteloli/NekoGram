@@ -22,12 +22,22 @@ class HandlerInjector(BaseMiddleware):
         super().__init__()
         self.neko: BaseNeko = neko
 
+    async def _actualize(self, user: types.User) -> None:
+        await self.neko.storage.apply(
+            f'UPDATE nekogram_users SET '
+            f'full_name = {self.neko.storage.placeholder(1)}, '
+            f'username = {self.neko.storage.placeholder(2)} '
+            f'WHERE id = {self.neko.storage.placeholder(3)};', (
+            user.full_name, user.username, user.id
+        ))
+
     async def on_pre_process_message(self, message: types.Message, _: dict):
         """
         This handler is called when dispatcher receives a message.
         """
         # Get current handler
         message.conf['neko'] = self.neko
+        await self._actualize(message.from_user)
         with suppress(Exception):
             message.conf['request_token'] = message.conf['parent']().conf['request_token']
 
@@ -39,6 +49,7 @@ class HandlerInjector(BaseMiddleware):
         call.conf['neko'] = self.neko
         call.message.conf['neko'] = self.neko
         call.message.from_user = call.from_user
+        await self._actualize(call.from_user)
         with suppress(Exception):
             call.conf['request_token'] = call.conf['parent']().conf['request_token']
 
@@ -48,6 +59,7 @@ class HandlerInjector(BaseMiddleware):
         """
         # Get current handler
         query.conf['neko'] = self.neko
+        await self._actualize(query.from_user)
         with suppress(Exception):
             query.conf['request_token'] = query.conf['parent']().conf['request_token']
 
