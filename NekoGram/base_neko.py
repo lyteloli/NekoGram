@@ -87,7 +87,7 @@ class BaseNeko(ABC):
         Registers default handlers.
         """
         self.dp.register_message_handler(
-            handlers.menu_message_handler, ChatTypeFilter(types.ChatType.PRIVATE), commands=['start']
+            handlers._start_handler, ChatTypeFilter(types.ChatType.PRIVATE), commands=['start']  # noqa
         )
         for menu_prefix in self.menu_prefixes:
             self.dp.register_callback_query_handler(handlers.menu_callback_query_handler, StartsWith(menu_prefix))

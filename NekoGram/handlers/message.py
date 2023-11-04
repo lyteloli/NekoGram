@@ -6,7 +6,7 @@ from ..logger import LOGGER
 import NekoGram
 
 
-async def default_start_handler(message: types.Message):
+async def _start_handler(message: types.Message):
     neko: NekoGram.Neko = message.conf['neko']
 
     if not await neko.storage.check_user_exists(user_id=message.from_user.id):
@@ -36,9 +36,6 @@ async def default_start_handler(message: types.Message):
 
 async def menu_message_handler(message: types.Message):
     neko: NekoGram.Neko = message.conf['neko']
-    if message.text and message.text.startswith('/start'):  # Start case
-        await default_start_handler(message)
-        return
 
     bot_token: Optional[str] = message.conf.get('request_token')
     user_data: Union[Dict[str, Any], bool] = await neko.storage.get_user_data(
