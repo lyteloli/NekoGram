@@ -43,9 +43,10 @@ class BaseProcessor(ABC):
             elif os.path.isdir(_texts):  # path to the dir
                 for entry in os.listdir(_texts):
                     gather(os.path.abspath(os.path.join(_texts, entry)), _is_widget)
-            elif os.path.isfile(_texts) and any(_texts.endswith(ext) for ext in self.extensions):  # path to the file
-                with open(_texts, 'r', encoding='utf-8') as file:
-                    gather(file, _is_widget)
+            elif os.path.isfile(_texts):  # path to the file
+                if any(_texts.endswith(ext) for ext in self.extensions):  # supported
+                    with open(_texts, 'r', encoding='utf-8') as file:
+                        gather(file, _is_widget)
             elif isinstance(_texts, str):  # str
                 _texts = self.from_str(_texts)
                 lang = _texts.get('lang')
