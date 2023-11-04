@@ -4,9 +4,8 @@ try:
     import ujson as json
 except ImportError:
     import warnings
-    from ..utils import NekoGramWarning
 
-    warnings.warn('`ujson` is not installed, `JSONProcessor` may work slowly.', category=NekoGramWarning)
+    warnings.warn('`ujson` is not installed, `JSONProcessor` may work slowly.')
     import json
 
 from .base_processor import BaseProcessor
