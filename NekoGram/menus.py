@@ -344,7 +344,7 @@ class Menu:
             text_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
             markup_format: Optional[Union[List[Any], Dict[str, Any], Any]] = None,
             markup: Optional[Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup]] = None,
-            allowed_buttons: List[Union[str, int]] = None,
+            allowed_buttons: Iterable[Union[str, int]] = None,
             skip_field_validation: bool = False
     ):
         """
