@@ -321,7 +321,7 @@ class Neko(BaseNeko):
         :param formatters_to_ignore: A list of formatter names to ignore.
         :param functions_to_ignore: A list of function names to ignore.
         """
-        if self.storage.__class__.__name__ != 'MySQLStorage' and not self._widgets_warned:
+        if 'MySQLStorage' not in self.storage.__class__.__name__ and not self._widgets_warned:
             LOGGER.warning(f'Your storage is not MySQLStorage, widgets may function improperly.')
             self._widgets_warned = True
         if formatters_router.name is None or formatters_router.name != functions_router.name \
