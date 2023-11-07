@@ -15,7 +15,9 @@ class HasMenu(Filter):
         return {}
 
     async def check(self, obj: Union[Message, CallbackQuery]) -> bool:
-        return bool((await self.database.get_user_data(user_id=obj.from_user.id)).get('menu', False))
+        return bool((await self.database.get_user_data(
+            user_id=obj.from_user.id, bot_token=obj.conf['request_token']
+        )).get('menu', False))
 
 
 class StartsWith(Filter):
