@@ -15,7 +15,7 @@ class JSONProcessor(BaseProcessor):
     def __init__(self, validate_start: bool = True):
         """
         Initialize JSONProcessor.
-        :param validate_start: Whether to check `start` object exists for each language.
+        :param validate_start: Whether to check if `start` object exists for each language.
         """
         super().__init__(validate_start=validate_start)
 

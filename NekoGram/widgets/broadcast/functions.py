@@ -1,5 +1,5 @@
 from aiogram import exceptions as aiogram_exc, types
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Any
 from asyncio import sleep
 from io import BytesIO
 
@@ -7,8 +7,17 @@ from NekoGram import Neko, Menu, NekoRouter
 from NekoGram.utils import telegraph_upload
 from . import utils
 
-
 ROUTER: NekoRouter = NekoRouter(name='broadcast')
+
+
+async def __safe_exec(func: callable, **kwargs) -> Any:
+    while True:
+        try:
+            return await func(**kwargs)
+        except aiogram_exc.RetryAfter as e:
+            await sleep(e.timeout)
+        except Exception:  # noqa
+            return False
 
 
 @ROUTER.function()
@@ -21,8 +30,7 @@ async def widget_broadcast(_: Menu, message: Union[types.Message, types.Callback
             f = await (max(message.photo, key=lambda c: c.width)).download(destination=BytesIO())
         else:
             f = await getattr(message, message.content_type).download(destination=BytesIO())
-        url = await telegraph_upload(f)
-        user_data['widget_broadcast']['file_id'] = url
+        user_data['widget_broadcast']['file_id'] = await telegraph_upload(f)
     user_data['widget_broadcast_content_type'] = message.content_type
 
     await neko.storage.set_user_data(data=user_data, user_id=message.from_user.id, replace=True)
@@ -97,20 +105,14 @@ async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, type
             continue
 
         attempts += 1
-        while True:
-            try:
-                await utils.send_post(user_data=user_data, chat_id=user['id'], neko=neko)
-                successful += 1
-                break
-            except aiogram_exc.RetryAfter as e:
-                await sleep(e.timeout)
-            except aiogram_exc.TelegramAPIError:
-                failed += 1
-                break
-            await sleep(.2)
+        if await __safe_exec(utils.send_post, user_data=user_data, chat_id=user['id'], neko=neko):
+            successful += 1
+        else:
+            failed += 1
+        await sleep(.2)
 
         if attempts % 5 == 0:
-            await call.message.edit_text(text=data.text.format(
+            await __safe_exec(call.message.edit_text, text=data.text.format(
                 total=total, attempts=attempts, successful=successful, failed=failed
             ))
 
@@ -122,4 +124,4 @@ async def widget_broadcast_broadcast(data: Menu, call: Union[types.Message, type
     await data.build(text_format={
         'total': total, 'attempts': attempts, 'successful': successful, 'failed': failed
     }, allowed_buttons=[2])
-    await data.edit_message()
+    await __safe_exec(data.edit_message())
